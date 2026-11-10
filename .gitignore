@@ -45,4 +45,4 @@ yarn-error.log*
 next-env.d.ts
 
 # Prisma Client output (generator `output` in src/db/schema.prisma)
-/src/generated/prisma
+/src/db/generated
