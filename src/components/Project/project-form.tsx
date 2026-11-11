@@ -2,7 +2,7 @@
 
 import { Form } from "radix-ui";
 import { type FormEvent, startTransition, useActionState } from "react";
-import { createProject, type CreateProjectState } from "@/app/new/actions";
+import { createProject, type CreateProjectState } from "@/actions/projects";
 import { FileDropzone } from "@/components/File/file-dropzone";
 import { normalizeFileSize } from "@/utils/string-format";
 import { MAX_UPLOAD_BYTES } from "@/utils/upload/uploads";
