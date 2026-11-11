@@ -29,6 +29,14 @@ Gerenciador de pacotes: **pnpm**. Não use npm nem yarn.
 - **Funções dentro de componentes** (handlers como `handleDrop`): use a declaração `function`. Algumas dependem de hoisting; o `handleDrop`, por exemplo, é usado no `useDropzone` antes de ser definido, e viraria `ReferenceError` se fosse uma `const`.
 - **Callbacks** (`.map`, `.filter`, `useEffect`, `setState((prev) => ...)`, props inline como `onClick={() => ...}`): use arrow function. A regra `prefer-arrow-callback` do ESLint obriga isso e corrige sozinha com `--fix`.
 
+## Server Actions
+
+- **Onde ficam:** em `src/actions/`, com um arquivo por assunto. Por exemplo, `src/actions/projects.ts` reúne `createProject` e, no futuro, `updateProject` e `deleteProject`. Não coloque actions nas pastas de rota de `src/app/`. Páginas e componentes importam de `@/actions/<assunto>`.
+- **Formato:** o arquivo começa com `"use server"` e segue o estilo das funções utilitárias: arrow functions `async`, com tudo exportado no final. Tipos, como o `CreateProjectState`, vão num `export type { ... }` separado.
+- **Validação:** valide toda a entrada no servidor com Zod, mesmo que o formulário já tenha `required`. Devolva `{ errors, message }` para o `useActionState` mostrar no formulário.
+- **Redirect:** chame `redirect()` fora do `try`. Ele funciona lançando uma exceção, e um `catch` a engoliria.
+- **Formulários:** o formulário é um Client Component com `useActionState`. Envie pelo `onSubmit` com `startTransition(() => formAction(formData))`, e não pelo `action` do `<form>`. Com `action`, o React limpa os campos depois de cada envio, mesmo quando o servidor devolve erro de validação.
+
 ## Checagens
 
 - `pnpm lint`: ESLint (`eslint-config-next`). O `eslint-config-prettier` desliga as regras que conflitam com o Prettier.

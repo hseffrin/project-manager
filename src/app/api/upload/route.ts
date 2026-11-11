@@ -1,5 +1,9 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { MAX_UPLOAD_BYTES, UPLOAD_PREFIX } from "@/utils/upload/uploads";
+import {
+  ALLOWED_CONTENT_TYPES,
+  MAX_UPLOAD_BYTES,
+  UPLOAD_PREFIX,
+} from "@/utils/upload/uploads";
 
 // Issues short-lived client tokens so the browser uploads straight to
 // Vercel Blob. The files never pass through this server, which avoids the
@@ -20,6 +24,7 @@ export async function POST(request: Request) {
 
         return {
           maximumSizeInBytes: MAX_UPLOAD_BYTES,
+          allowedContentTypes: ALLOWED_CONTENT_TYPES,
           addRandomSuffix: true,
         };
       },

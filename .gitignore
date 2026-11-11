@@ -37,9 +37,6 @@ yarn-error.log*
 # vercel
 .vercel
 
-# local uploads (UPLOAD_DRIVER=local)
-/.uploads
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts
