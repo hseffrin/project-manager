@@ -1,0 +1,11 @@
+export FORCE_COLOR=1
+
+# git already has a message (-m, -F, -t, merge, squash, amend): nothing to prompt for
+case "$2" in
+  message|template|merge|squash|commit) exit 0 ;;
+esac
+
+# no controlling terminal (CI, editors, agents): skip the prompt instead of failing on /dev/tty
+( exec < /dev/tty ) 2>/dev/null || exit 0
+
+exec < /dev/tty && node_modules/.bin/cz --hook || true

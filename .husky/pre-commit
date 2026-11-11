@@ -1,0 +1,4 @@
+export FORCE_COLOR=1
+
+pnpm lint-staged
+pnpm typecheck
