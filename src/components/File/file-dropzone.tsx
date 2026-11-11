@@ -1,15 +1,24 @@
 "use client";
 
 import { Progress } from "radix-ui";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
+import { ErrorCode, useDropzone } from "react-dropzone";
+
+import type { Accept, FileError, FileRejection } from "react-dropzone";
 import { uploadFile } from "@/utils/upload/upload-client";
 import type { UploadDriver } from "@/utils/upload/upload-driver";
 import { MAX_UPLOAD_BYTES } from "@/utils/upload/uploads";
+import { normalizeFileSize } from "@/utils/string-format";
 
-function formatSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+function errorMessage(error: FileError) {
+  switch (error.code) {
+    case ErrorCode.FileTooLarge:
+      return `Maior que ${normalizeFileSize(MAX_UPLOAD_BYTES)}`;
+    case ErrorCode.FileInvalidType:
+      return "Tipo de arquivo não permitido";
+    default:
+      return error.message;
+  }
 }
 
 type UploadItem = {
@@ -28,7 +37,8 @@ type FileDropzoneProps = {
   /** Form field name that receives the uploaded file URLs (one entry per file). */
   name?: string;
   label?: string;
-  accept?: string;
+  /** MIME types → extensions, e.g. `{ "image/*": [], "application/pdf": [".pdf"] }`. */
+  accept?: Accept;
   hint?: string;
 };
 
@@ -37,24 +47,31 @@ export function FileDropzone({
   name = "files",
   label = "Arquivos",
   accept,
-  hint = `Qualquer tipo de arquivo, até ${formatSize(MAX_UPLOAD_BYTES)}`,
+  hint = `Qualquer tipo de arquivo, até ${normalizeFileSize(MAX_UPLOAD_BYTES)}`,
 }: FileDropzoneProps) {
   const inputId = useId();
-  const inputRef = useRef<HTMLInputElement>(null);
   const [items, setItems] = useState<UploadItem[]>([]);
-  const [dragging, setDragging] = useState(false);
   const [blockedSubmit, setBlockedSubmit] = useState(false);
+
+  const { getRootProps, getInputProps, inputRef, isDragActive, isDragReject } =
+    useDropzone({
+      accept,
+      maxSize: MAX_UPLOAD_BYTES,
+      multiple: true,
+      onDrop: handleDrop,
+    });
 
   const uploading = items.some((item) => item.status === "uploading");
 
   // While files are still uploading, mark the picker as invalid so the
   // browser refuses to submit the form (no Radix Form.Control here because
-  // it resets custom validity on its own).
+  // it resets custom validity on its own). react-dropzone keeps its input
+  // focusable precisely so form validation still works on it.
   useEffect(() => {
     inputRef.current?.setCustomValidity(
       uploading ? "Aguarde o envio dos arquivos terminar." : "",
     );
-  }, [uploading]);
+  }, [inputRef, uploading]);
 
   function updateItem(id: string, patch: Partial<UploadItem>) {
     setItems((prev) =>
@@ -62,27 +79,19 @@ export function FileDropzone({
     );
   }
 
-  async function startUpload(file: File) {
-    const item: UploadItem = {
+  function newItem(file: File, patch?: Partial<UploadItem>): UploadItem {
+    return {
       id: crypto.randomUUID(),
       file,
       status: "uploading",
       progress: 0,
       controller: new AbortController(),
+      ...patch,
     };
+  }
 
-    if (file.size > MAX_UPLOAD_BYTES) {
-      setItems((prev) => [
-        ...prev,
-        {
-          ...item,
-          status: "error",
-          error: `Maior que ${formatSize(MAX_UPLOAD_BYTES)}`,
-        },
-      ]);
-      return;
-    }
-
+  async function startUpload(file: File) {
+    const item = newItem(file);
     setItems((prev) => [...prev, item]);
 
     try {
@@ -100,13 +109,25 @@ export function FileDropzone({
     }
   }
 
-  function handleSelect(fileList: FileList | null) {
-    const files = Array.from(fileList ?? []);
+  function handleDrop(accepted: File[], rejections: FileRejection[]) {
     // Clear the native input: files go to Blob, not with the form submit.
     // This also lets the user pick the same file again.
     if (inputRef.current) inputRef.current.value = "";
     setBlockedSubmit(false);
-    files.forEach(startUpload);
+
+    // Rejected files (too large, wrong type) stay in the list as errors.
+    if (rejections.length > 0) {
+      setItems((prev) => [
+        ...prev,
+        ...rejections.map(({ file, errors }) =>
+          newItem(file, {
+            status: "error",
+            error: errors.map(errorMessage).join(" · "),
+          }),
+        ),
+      ]);
+    }
+    accepted.forEach(startUpload);
   }
 
   function removeItem(id: string) {
@@ -130,11 +151,15 @@ export function FileDropzone({
       </div>
 
       <div
-        className={`relative flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm transition has-focus-visible:ring-2 has-focus-visible:ring-blue-500/30 ${
-          dragging
-            ? "border-blue-500 bg-blue-500/5"
-            : "border-black/15 hover:border-black/30 dark:border-white/20 dark:hover:border-white/40"
-        }`}
+        {...getRootProps({
+          className: `flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm transition outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 ${
+            isDragReject
+              ? "border-red-500 bg-red-500/5"
+              : isDragActive
+                ? "border-blue-500 bg-blue-500/5"
+                : "border-black/15 hover:border-black/30 dark:border-white/20 dark:hover:border-white/40"
+          }`,
+        })}
       >
         <svg
           aria-hidden
@@ -150,31 +175,32 @@ export function FileDropzone({
             d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
           />
         </svg>
-        <p>
-          <span className="font-medium text-blue-600 dark:text-blue-400">
-            Clique para escolher
-          </span>{" "}
-          ou arraste os arquivos aqui
-        </p>
+        {isDragReject ? (
+          <p className="font-medium text-red-600">
+            Tipo de arquivo não permitido
+          </p>
+        ) : (
+          <p>
+            <span className="font-medium text-blue-600 dark:text-blue-400">
+              Clique para escolher
+            </span>{" "}
+            ou arraste os arquivos aqui
+          </p>
+        )}
         <p className="text-xs text-foreground/60">{hint}</p>
 
-        {/* Invisible native input covering the zone: handles click and drop.
-            No `name`, so the raw files are never sent with the form. */}
+        {/* Hidden native input managed by react-dropzone. No `name`, so the
+            raw files are never sent with the form. The <label> above names
+            it, so drop the library's generic "file upload" aria-label. */}
         <input
-          id={inputId}
-          ref={inputRef}
-          type="file"
-          multiple
-          accept={accept}
-          className="absolute inset-0 cursor-pointer opacity-0"
-          onChange={(e) => handleSelect(e.target.files)}
-          onInvalid={(e) => {
-            e.preventDefault();
-            setBlockedSubmit(true);
-          }}
-          onDragEnter={() => setDragging(true)}
-          onDragLeave={() => setDragging(false)}
-          onDrop={() => setDragging(false)}
+          {...getInputProps({
+            id: inputId,
+            "aria-label": undefined,
+            onInvalid: (e) => {
+              e.preventDefault();
+              setBlockedSubmit(true);
+            },
+          })}
         />
       </div>
 
@@ -201,7 +227,8 @@ export function FileDropzone({
                   >
                     {item.status === "uploading" &&
                       `${Math.round(item.progress)}%`}
-                    {item.status === "done" && formatSize(item.file.size)}
+                    {item.status === "done" &&
+                      normalizeFileSize(item.file.size)}
                     {item.status === "error" && item.error}
                   </span>
                   <button
