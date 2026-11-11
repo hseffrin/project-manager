@@ -15,9 +15,19 @@ Gerenciador de pacotes: **pnpm**. Não use npm nem yarn.
 
 ## Funções
 
-- **Componentes, páginas e funções de nível superior** (helpers, handlers dentro de componentes): use a declaração `function`, por exemplo `export default function Page()` ou `function handleDrop(...)`. Ela permite hoisting, overloads no TypeScript e genéricos sem a vírgula do `.tsx`.
+- **Onde ficam:** funções utilitárias ficam em `src/utils/`, agrupadas por assunto em subpastas quando há mais de um arquivo sobre o tema. Por exemplo, tudo de upload fica em `src/utils/upload/`. Não existe `src/lib/`.
+- **Funções utilitárias** (módulos de helpers, como `src/utils/string-format.ts`): use arrow function em `const`, com tipo de retorno explícito, e exporte tudo junto no final do arquivo, num único `export { ... }`. Não use `export` na frente de cada declaração.
+
+  ```ts
+  const normalizeFileSize = (bytes: number): string => { ... };
+  const otherHelper = (value: string): string => { ... };
+
+  export { normalizeFileSize, otherHelper };
+  ```
+
+- **Componentes e páginas:** continuam com a declaração `function`, por exemplo `export function FileDropzone()` ou `export default function Page()`, que é a convenção do Next.
+- **Funções dentro de componentes** (handlers como `handleDrop`): use a declaração `function`. Algumas dependem de hoisting; o `handleDrop`, por exemplo, é usado no `useDropzone` antes de ser definido, e viraria `ReferenceError` se fosse uma `const`.
 - **Callbacks** (`.map`, `.filter`, `useEffect`, `setState((prev) => ...)`, props inline como `onClick={() => ...}`): use arrow function. A regra `prefer-arrow-callback` do ESLint obriga isso e corrige sozinha com `--fix`.
-- Não converta declarações `function` em `const` com arrow. Algumas dependem de hoisting, como o `handleDrop`, que é usado no `useDropzone` antes de ser definido.
 
 ## Checagens
 

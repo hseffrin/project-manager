@@ -2,9 +2,9 @@
 
 import { Progress } from "radix-ui";
 import { useEffect, useId, useRef, useState } from "react";
-import { uploadFile } from "@/lib/upload-client";
-import type { UploadDriver } from "@/lib/upload-driver";
-import { MAX_UPLOAD_BYTES } from "@/lib/uploads";
+import { uploadFile } from "@/utils/upload/upload-client";
+import type { UploadDriver } from "@/utils/upload/upload-driver";
+import { MAX_UPLOAD_BYTES } from "@/utils/upload/uploads";
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
@@ -235,7 +235,9 @@ export function FileDropzone({
                 >
                   <Progress.Indicator
                     className="h-full bg-blue-500 transition-transform"
-                    style={{ transform: `translateX(-${100 - item.progress}%)` }}
+                    style={{
+                      transform: `translateX(-${100 - item.progress}%)`,
+                    }}
                   />
                 </Progress.Root>
               )}

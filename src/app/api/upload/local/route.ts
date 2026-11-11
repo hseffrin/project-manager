@@ -8,14 +8,17 @@ import {
   isLocalStorageAllowed,
   resolveLocalPath,
   sanitizeFilename,
-} from "@/lib/local-storage";
-import { MAX_UPLOAD_BYTES, UPLOAD_PREFIX } from "@/lib/uploads";
+} from "@/utils/upload/local-storage";
+import { MAX_UPLOAD_BYTES, UPLOAD_PREFIX } from "@/utils/upload/uploads";
 
 // Local-mode equivalent of the Vercel Blob upload: receives the raw file
 // body and writes it to .uploads/projects/<random>-<filename>.
 export async function POST(request: Request) {
   if (!isLocalStorageAllowed()) {
-    return Response.json({ error: "Local uploads are disabled" }, { status: 404 });
+    return Response.json(
+      { error: "Local uploads are disabled" },
+      { status: 404 },
+    );
   }
 
   const filename = new URL(request.url).searchParams.get("filename");

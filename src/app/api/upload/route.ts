@@ -1,5 +1,5 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { MAX_UPLOAD_BYTES, UPLOAD_PREFIX } from "@/lib/uploads";
+import { MAX_UPLOAD_BYTES, UPLOAD_PREFIX } from "@/utils/upload/uploads";
 
 // Issues short-lived client tokens so the browser uploads straight to
 // Vercel Blob. The files never pass through this server, which avoids the

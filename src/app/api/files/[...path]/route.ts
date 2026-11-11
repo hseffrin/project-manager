@@ -2,7 +2,10 @@ import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { isLocalStorageAllowed, resolveLocalPath } from "@/lib/local-storage";
+import {
+  isLocalStorageAllowed,
+  resolveLocalPath,
+} from "@/utils/upload/local-storage";
 
 // Serves files saved by the local upload mode, so you can open them in dev.
 // TODO: check that the logged-in user can see this project's files.
