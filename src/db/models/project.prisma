@@ -1,12 +1,10 @@
 model Project {
-  id Int @id @default(autoincrement())
-  name String
-  customer String
+  id         Int      @id @default(autoincrement())
+  name       String
+  customer   String
   date_start DateTime
-  date_end DateTime
-  cover_url String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  
+  date_end   DateTime
+  cover_url  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
