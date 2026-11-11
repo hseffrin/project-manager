@@ -6,7 +6,7 @@
 // "development" under `next dev`, "production" in any build.
 const UPLOAD_PREFIX =
   process.env.NODE_ENV === "production" ? "projects/" : "test/projects/";
-const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB
+const MAX_UPLOAD_BYTES = 1024 * 1024; // 1 MB
 // Uploads are project covers, so only images are accepted.
 const ALLOWED_CONTENT_TYPES = ["image/*"];
 
