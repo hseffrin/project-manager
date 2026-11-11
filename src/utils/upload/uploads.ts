@@ -1,6 +1,13 @@
 // Shared between the upload route (server) and the dropzone (client),
 // so the limit checked in the browser is the same one enforced by the token.
-const UPLOAD_PREFIX = "projects/";
-const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB
 
-export { MAX_UPLOAD_BYTES, UPLOAD_PREFIX };
+// Development uploads go to test/ so they never mix with production files in
+// the same Blob store. NODE_ENV is inlined in the client bundle by Next.js:
+// "development" under `next dev`, "production" in any build.
+const UPLOAD_PREFIX =
+  process.env.NODE_ENV === "production" ? "projects/" : "test/projects/";
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024; // 50 MB
+// Uploads are project covers, so only images are accepted.
+const ALLOWED_CONTENT_TYPES = ["image/*"];
+
+export { ALLOWED_CONTENT_TYPES, MAX_UPLOAD_BYTES, UPLOAD_PREFIX };

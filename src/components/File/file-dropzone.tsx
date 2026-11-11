@@ -6,7 +6,6 @@ import { ErrorCode, useDropzone } from "react-dropzone";
 
 import type { Accept, FileError, FileRejection } from "react-dropzone";
 import { uploadFile } from "@/utils/upload/upload-client";
-import type { UploadDriver } from "@/utils/upload/upload-driver";
 import { MAX_UPLOAD_BYTES } from "@/utils/upload/uploads";
 import { normalizeFileSize } from "@/utils/string-format";
 
@@ -16,6 +15,8 @@ function errorMessage(error: FileError) {
       return `Maior que ${normalizeFileSize(MAX_UPLOAD_BYTES)}`;
     case ErrorCode.FileInvalidType:
       return "Tipo de arquivo não permitido";
+    case ErrorCode.TooManyFiles:
+      return "Envie apenas um arquivo";
     default:
       return error.message;
   }
@@ -32,22 +33,30 @@ type UploadItem = {
 };
 
 type FileDropzoneProps = {
-  /** Where files are stored; decided on the server by getUploadDriver(). */
-  driver: UploadDriver;
   /** Form field name that receives the uploaded file URLs (one entry per file). */
   name?: string;
   label?: string;
   /** MIME types → extensions, e.g. `{ "image/*": [], "application/pdf": [".pdf"] }`. */
   accept?: Accept;
   hint?: string;
+  /** Single-file mode: a new file replaces the current one. */
+  multiple?: boolean;
+  /** Blocks the form submit until at least one file finished uploading. */
+  required?: boolean;
+  requiredMessage?: string;
+  /** Error returned by the server for this field. */
+  error?: string;
 };
 
 export function FileDropzone({
-  driver,
   name = "files",
   label = "Arquivos",
   accept,
   hint = `Qualquer tipo de arquivo, até ${normalizeFileSize(MAX_UPLOAD_BYTES)}`,
+  multiple = true,
+  required = false,
+  requiredMessage = "Envie um arquivo",
+  error,
 }: FileDropzoneProps) {
   const inputId = useId();
   const [items, setItems] = useState<UploadItem[]>([]);
@@ -57,21 +66,28 @@ export function FileDropzone({
     useDropzone({
       accept,
       maxSize: MAX_UPLOAD_BYTES,
-      multiple: true,
+      multiple,
+      maxFiles: multiple ? 0 : 1,
       onDrop: handleDrop,
     });
 
   const uploading = items.some((item) => item.status === "uploading");
+  const hasFile = items.some((item) => item.status === "done");
+  const validityMessage = uploading
+    ? "Aguarde o envio dos arquivos terminar"
+    : required && !hasFile
+      ? requiredMessage
+      : "";
+  const shownError = (blockedSubmit && validityMessage) || error;
 
-  // While files are still uploading, mark the picker as invalid so the
-  // browser refuses to submit the form (no Radix Form.Control here because
-  // it resets custom validity on its own). react-dropzone keeps its input
-  // focusable precisely so form validation still works on it.
+  // While files are still uploading (or a required file is missing), mark
+  // the picker as invalid so the browser refuses to submit the form (no Radix
+  // Form.Control here because it resets custom validity on its own).
+  // react-dropzone keeps its input focusable precisely so form validation
+  // still works on it.
   useEffect(() => {
-    inputRef.current?.setCustomValidity(
-      uploading ? "Aguarde o envio dos arquivos terminar." : "",
-    );
-  }, [inputRef, uploading]);
+    inputRef.current?.setCustomValidity(validityMessage);
+  }, [inputRef, validityMessage]);
 
   function updateItem(id: string, patch: Partial<UploadItem>) {
     setItems((prev) =>
@@ -95,7 +111,7 @@ export function FileDropzone({
     setItems((prev) => [...prev, item]);
 
     try {
-      const { url } = await uploadFile(driver, file, {
+      const { url } = await uploadFile(file, {
         signal: item.controller.signal,
         onProgress: (progress) => updateItem(item.id, { progress }),
       });
@@ -114,6 +130,14 @@ export function FileDropzone({
     // This also lets the user pick the same file again.
     if (inputRef.current) inputRef.current.value = "";
     setBlockedSubmit(false);
+
+    // Single-file mode: the new file replaces the current one.
+    if (!multiple) {
+      setItems((prev) => {
+        prev.forEach((item) => item.controller.abort());
+        return [];
+      });
+    }
 
     // Rejected files (too large, wrong type) stay in the list as errors.
     if (rejections.length > 0) {
@@ -143,9 +167,9 @@ export function FileDropzone({
         <label htmlFor={inputId} className="text-sm font-medium">
           {label}
         </label>
-        {blockedSubmit && uploading && (
-          <span className="text-xs text-red-600">
-            Aguarde o envio dos arquivos terminar
+        {shownError && (
+          <span className="text-xs text-red-600" role="alert">
+            {shownError}
           </span>
         )}
       </div>
@@ -184,7 +208,7 @@ export function FileDropzone({
             <span className="font-medium text-blue-600 dark:text-blue-400">
               Clique para escolher
             </span>{" "}
-            ou arraste os arquivos aqui
+            ou arraste {multiple ? "os arquivos" : "o arquivo"} aqui
           </p>
         )}
         <p className="text-xs text-foreground/60">{hint}</p>
