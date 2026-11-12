@@ -49,6 +49,11 @@ Gerenciador de pacotes: **pnpm**. Não use npm nem yarn.
 - **Nunca use `--no-verify`.** Se o hook falhar, corrija a causa e faça o commit de novo.
 - `prepare-commit-msg`: abre o prompt do commitizen quando o commit é feito sem mensagem num terminal interativo. Com `-m`, num merge ou amend, ou sem terminal (agentes, CI), o prompt é pulado.
 
+## Branches
+
+- **Nunca faça commit na `main`.** Antes do primeiro commit, crie um branch a partir da `main` atualizada, com o prefixo do tipo do commit (`feat/header`, `fix/upload-limit`, `docs/readme`). As mudanças chegam à `main` só por pull request.
+- Se houver mudanças não commitadas na `main`, crie o branch antes de commitar (`git switch -c <branch>`). As mudanças vão junto para o branch novo.
+
 ## Mensagens de commit (padrão do commitizen)
 
 O projeto usa **Conventional Commits** no formato do `cz-conventional-changelog`, o adaptador configurado em `config.commitizen` no `package.json`. Como agentes fazem commit com `-m` e o prompt é pulado, escreva a mensagem já no formato que o commitizen geraria:

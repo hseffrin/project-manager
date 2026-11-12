@@ -181,7 +181,7 @@ export function FileDropzone({
               ? "border-red-500 bg-red-500/5"
               : isDragActive
                 ? "border-blue-500 bg-blue-500/5"
-                : "border-black/15 hover:border-black/30 dark:border-white/20 dark:hover:border-white/40"
+                : "border-black/15 hover:border-black/30"
           }`,
         })}
       >
@@ -205,7 +205,7 @@ export function FileDropzone({
           </p>
         ) : (
           <p>
-            <span className="font-medium text-blue-600 dark:text-blue-400">
+            <span className="font-medium text-blue-600">
               Clique para escolher
             </span>{" "}
             ou arraste {multiple ? "os arquivos" : "o arquivo"} aqui
@@ -236,7 +236,7 @@ export function FileDropzone({
               className={`flex flex-col gap-1.5 rounded-md border px-3 py-2 text-sm ${
                 item.status === "error"
                   ? "border-red-500/50"
-                  : "border-black/10 dark:border-white/15"
+                  : "border-black/10"
               }`}
             >
               <div className="flex items-center justify-between gap-3">
@@ -263,7 +263,7 @@ export function FileDropzone({
                         ? `Cancelar envio de ${item.file.name}`
                         : `Remover ${item.file.name}`
                     }
-                    className="rounded p-0.5 text-foreground/50 hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                    className="rounded p-0.5 text-foreground/50 hover:bg-black/5 hover:text-foreground"
                   >
                     <svg
                       aria-hidden
@@ -282,7 +282,7 @@ export function FileDropzone({
               {item.status === "uploading" && (
                 <Progress.Root
                   value={item.progress}
-                  className="h-1 overflow-hidden rounded-full bg-black/10 dark:bg-white/15"
+                  className="h-1 overflow-hidden rounded-full bg-black/10"
                 >
                   <Progress.Indicator
                     className="h-full bg-blue-500 transition-transform"
