@@ -1,13 +1,15 @@
-import type { MouseEventHandler, ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 type ButtonVariant = "primary" | "secondary";
 
-type ButtonProps = {
+// Extra button props (ref, aria-*, onClick...) are passed through, so Radix
+// parts like Dialog.Close can use it with asChild.
+type ButtonProps = Omit<ComponentProps<"button">, "children"> & {
   label: string;
   icon?: ReactNode;
   variant?: ButtonVariant;
-  disabled?: boolean;
-  onClick?: MouseEventHandler<HTMLButtonElement>;
+  // Fills the parent width on every screen size (158px from md up otherwise).
+  fullWidth?: boolean;
 };
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -21,15 +23,15 @@ export function Button({
   label,
   icon,
   variant = "primary",
-  disabled = false,
-  onClick,
+  fullWidth = false,
+  className = "",
+  ...buttonProps
 }: ButtonProps) {
   return (
     <button
       type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={`flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full border px-5 text-base font-medium transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 md:w-39.5 ${variantClasses[variant]}`}
+      {...buttonProps}
+      className={`flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-full border px-5 text-base font-medium transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${fullWidth ? "" : "md:w-39.5"} ${variantClasses[variant]} ${className}`}
     >
       {icon}
       {label}
