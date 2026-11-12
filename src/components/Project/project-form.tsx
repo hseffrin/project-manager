@@ -8,7 +8,7 @@ import { normalizeFileSize } from "@/utils/string-format";
 import { MAX_UPLOAD_BYTES } from "@/utils/upload/uploads";
 
 const fieldCls =
-  "rounded-md border border-black/15 bg-transparent px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 data-invalid:border-red-500 dark:border-white/20";
+  "rounded-md border border-black/15 bg-transparent px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 data-invalid:border-red-500";
 const labelCls = "text-sm font-medium group-data-invalid:text-red-600";
 const messageCls = "text-xs text-red-600";
 
@@ -34,7 +34,7 @@ export function ProjectForm() {
   return (
     <Form.Root
       onSubmit={handleSubmit}
-      className="mx-auto mt-16 flex w-full max-w-md flex-col gap-5 rounded-xl border border-black/10 p-6 shadow-sm dark:border-white/15"
+      className="mx-auto mt-16 flex w-full max-w-md flex-col gap-5 rounded-xl border border-black/10 p-6 shadow-sm"
     >
       <Form.Field
         className="group flex flex-col gap-1.5"
