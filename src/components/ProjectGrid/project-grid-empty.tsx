@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/Button/button";
-import newIcon from "./icons/new.svg";
+import newIcon from "@/components/icons/new.svg";
 
 export function ProjectGridEmpty() {
   const router = useRouter();
