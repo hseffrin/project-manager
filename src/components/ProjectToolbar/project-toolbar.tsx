@@ -12,6 +12,7 @@ import {
   PROJECT_SORTS,
   type ProjectSort,
 } from "@/utils/project-sort";
+import chevronDownIcon from "./icons/chevron-down.svg";
 
 type ProjectToolbarProps = {
   title: string;
@@ -99,10 +100,13 @@ export function ProjectToolbar({
           <Select.Root value={sort} onValueChange={handleSortChange}>
             <Select.Trigger
               aria-label="Ordenar projetos"
-              className="flex h-10 w-80 cursor-pointer items-center justify-between rounded-md border border-black/40 bg-white px-4 text-brand-fg focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none"
+              className="group flex h-10 w-80 cursor-pointer items-center justify-between rounded-md border border-black/40 bg-white px-4 text-brand-fg focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none"
             >
               <Select.Value />
-              <Select.Icon className="text-brand-card-label" />
+              {/* Points up while the list is open, as in the designs. */}
+              <Select.Icon className="transition-transform group-data-[state=open]:rotate-180">
+                <Image src={chevronDownIcon} alt="" />
+              </Select.Icon>
             </Select.Trigger>
 
             <Select.Portal>
