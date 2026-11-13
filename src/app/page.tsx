@@ -1,60 +1,31 @@
-import Image from "next/image";
-import { Button } from "@/components/Button/button";
+import { Suspense } from "react";
+import { ProjectGrid } from "@/components/ProjectGrid/project-grid";
+import { prisma } from "@/db/client";
+import { PROJECT_SORTS, parseProjectSort } from "@/utils/project-sort";
 
-export default function Home() {
+type ProjectCardsProps = {
+  searchParams: PageProps<"/">["searchParams"];
+};
+
+// Reading searchParams makes this render on every request, so a new project
+// shows up right away.
+async function ProjectCards({ searchParams }: ProjectCardsProps) {
+  const sort = parseProjectSort((await searchParams).ordem);
+  const projects = await prisma.project.findMany({
+    orderBy: PROJECT_SORTS[sort].orderBy,
+  });
+
+  return <ProjectGrid projects={projects} sort={sort} />;
+}
+
+export default function Home({ searchParams }: PageProps<"/">) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-50 font-sans">
-      <main className="flex w-full max-w-3xl flex-1 flex-col items-center justify-between bg-white px-16 py-32 sm:items-start">
-        <Image
-          className="h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl leading-10 font-semibold tracking-tight text-black">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <Button
-            label="Deploy Now"
-            icon={
-              <Image
-                className="h-3.5 w-4"
-                src="/vercel.svg"
-                alt=""
-                width={16}
-                height={14}
-              />
-            }
-          />
-          <Button label="Documentation" variant="secondary" />
-        </div>
-      </main>
-    </div>
+    // flex-1 fills the height left below the header, so the empty state can
+    // center itself on the screen.
+    <main className="flex flex-1 flex-col px-8 py-16">
+      <Suspense fallback={<p>Carregando projetos...</p>}>
+        <ProjectCards searchParams={searchParams} />
+      </Suspense>
+    </main>
   );
 }
