@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  --background: var(--color-brand-background);
   --foreground: #171717;
 }
 
@@ -17,6 +17,11 @@
   --color-brand-button-secondary-label: #695ccd;
   --color-brand-card-label: #717171;
   --color-brand-card-title: #1f1283;
+  --color-brand-background: #f4f2ff;
+  --color-brand-border: #dcdcdc;
+  --color-brand-input-border: #717171;
+  --color-brand-error: #c40000;
+  --color-brand-button-primary-disabled: #b2a8ff;
 }
 
 /* Tokens that point to other variables stay inline. */
