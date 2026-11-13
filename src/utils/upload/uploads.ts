@@ -9,7 +9,7 @@ const BLOB_ROOT = process.env.NODE_ENV === "production" ? "" : "test/";
 // the project's folder (projectCoverPath).
 const TEMP_UPLOAD_PREFIX = `${BLOB_ROOT}tmp/`;
 const PROJECT_COVERS_PREFIX = `${BLOB_ROOT}projects/`;
-const MAX_UPLOAD_BYTES = 1024 * 1024; // 1 MB
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024; // 4 MB
 // Uploads are project covers: only .jpg and .png images, as the form says.
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png"];
 
