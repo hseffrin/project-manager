@@ -1,19 +1,17 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { ProjectGrid } from "@/components/ProjectGrid/project-grid";
 import { prisma } from "@/db/client";
-import { PROJECT_SORTS, parseProjectSort } from "@/utils/project-sort";
 
-type ProjectCardsProps = {
-  searchParams: PageProps<"/">["searchParams"];
-};
+// Loads every project on each request, so a new one shows up right away. The
+// sort (?ordem=) and the favorites filter (?favoritos=) run in the browser.
+async function ProjectCards() {
+  // Keeps the list out of the prerendered shell: it must come from the
+  // database at request time.
+  await connection();
 
-// Reading searchParams makes this render on every request, so a new project
-// shows up right away.
-async function ProjectCards({ searchParams }: ProjectCardsProps) {
-  const sort = parseProjectSort((await searchParams).ordem);
-  // All projects, also with "Apenas Favoritos" on: the grid filters them in
-  // the browser. Only the fields the cards show, so the numeric id never
-  // reaches the browser.
+  // Only the fields the cards show, so the numeric id never reaches the
+  // browser.
   const projects = await prisma.project.findMany({
     select: {
       public_id: true,
@@ -24,19 +22,18 @@ async function ProjectCards({ searchParams }: ProjectCardsProps) {
       cover_url: true,
       favorite: true,
     },
-    orderBy: PROJECT_SORTS[sort].orderBy,
   });
 
-  return <ProjectGrid projects={projects} sort={sort} />;
+  return <ProjectGrid projects={projects} />;
 }
 
-export default function Home({ searchParams }: PageProps<"/">) {
+export default function Home() {
   return (
     // flex-1 fills the height left below the header, so the empty state can
     // center itself on the screen.
     <main className="flex flex-1 flex-col px-8 py-16">
       <Suspense fallback={<p>Carregando projetos...</p>}>
-        <ProjectCards searchParams={searchParams} />
+        <ProjectCards />
       </Suspense>
     </main>
   );

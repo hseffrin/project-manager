@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { Toggle } from "radix-ui";
 import { IconButton } from "@/components/IconButton/icon-button";
-import starEmptyIcon from "./icons/stat-empty.svg";
+import starEmptyIcon from "./icons/star-empty.svg";
 import starFilledIcon from "./icons/star-filled.svg";
 
 type FavoriteButtonProps = {

@@ -1,14 +1,33 @@
-import type { Prisma } from "@/db/generated/prisma/browser";
+import type { Project } from "@/db/generated/prisma/browser";
 
-// Sort options of the project gallery. The key is the ?ordem= value in the URL.
-// Used on the server (query orderBy) and in the browser (select options).
+// Sort options of the project gallery: ?ordem= in the URL. The gallery sorts
+// in the browser, so changing the select needs no request to the server.
+const SORT_PARAM = "ordem";
+
+type SortableProject = Pick<Project, "name" | "date_start" | "date_end">;
+
+// Accents and case don't change the order ("Ágata" next to "agenda").
+const nameCollator = new Intl.Collator("pt-BR", { sensitivity: "base" });
+
 const PROJECT_SORTS = {
-  alfabetica: { label: "Ordem alfabética", orderBy: { name: "asc" } },
-  inicio: { label: "Início mais próximo", orderBy: { date_start: "asc" } },
-  fim: { label: "Fim mais próximo", orderBy: { date_end: "asc" } },
+  alfabetica: {
+    label: "Ordem alfabética",
+    compare: (a: SortableProject, b: SortableProject): number =>
+      nameCollator.compare(a.name, b.name),
+  },
+  inicio: {
+    label: "Início mais próximo",
+    compare: (a: SortableProject, b: SortableProject): number =>
+      a.date_start.getTime() - b.date_start.getTime(),
+  },
+  fim: {
+    label: "Fim mais próximo",
+    compare: (a: SortableProject, b: SortableProject): number =>
+      a.date_end.getTime() - b.date_end.getTime(),
+  },
 } satisfies Record<
   string,
-  { label: string; orderBy: Prisma.ProjectOrderByWithRelationInput }
+  { label: string; compare: (a: SortableProject, b: SortableProject) => number }
 >;
 
 type ProjectSort = keyof typeof PROJECT_SORTS;
@@ -22,5 +41,18 @@ const isProjectSort = (value: unknown): value is ProjectSort =>
 const parseProjectSort = (value: unknown): ProjectSort =>
   isProjectSort(value) ? value : DEFAULT_PROJECT_SORT;
 
-export { DEFAULT_PROJECT_SORT, PROJECT_SORTS, isProjectSort, parseProjectSort };
+// Returns a sorted copy; the list received from the server stays untouched.
+const sortProjects = <T extends SortableProject>(
+  projects: T[],
+  sort: ProjectSort,
+): T[] => [...projects].sort(PROJECT_SORTS[sort].compare);
+
+export {
+  DEFAULT_PROJECT_SORT,
+  PROJECT_SORTS,
+  SORT_PARAM,
+  isProjectSort,
+  parseProjectSort,
+  sortProjects,
+};
 export type { ProjectSort };

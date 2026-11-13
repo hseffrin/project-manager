@@ -5,11 +5,15 @@ import { ProjectCard } from "@/components/ProjectCard/project-card";
 import { ProjectToolbar } from "@/components/ProjectToolbar/project-toolbar";
 import type { Project } from "@/db/generated/prisma/browser";
 import { FAVORITES_PARAM, parseFavoritesOnly } from "@/utils/project-favorites";
-import type { ProjectSort } from "@/utils/project-sort";
+import {
+  parseProjectSort,
+  SORT_PARAM,
+  sortProjects,
+} from "@/utils/project-sort";
 import { ProjectGridEmpty } from "./project-grid-empty";
 
 type ProjectGridProps = {
-  // All projects, already sorted by the query; the grid keeps the order.
+  // All projects, in any order: the grid sorts and filters them.
   projects: Pick<
     Project,
     | "public_id"
@@ -20,25 +24,24 @@ type ProjectGridProps = {
     | "cover_url"
     | "favorite"
   >[];
-  // Current sort, shown in the toolbar select.
-  sort: ProjectSort;
 };
 
 // The empty state centers itself in the remaining height, so render the grid
 // inside a flex-1 container.
-// "Apenas Favoritos" (?favoritos=1) filters here, in the browser: the switch
-// only changes the URL with history.pushState, so it responds right away
-// instead of waiting for the server.
-export function ProjectGrid({ projects, sort }: ProjectGridProps) {
-  const favoritesOnly = parseFavoritesOnly(
-    useSearchParams().get(FAVORITES_PARAM),
-  );
+// The sort (?ordem=) and "Apenas Favoritos" (?favoritos=1) run here, in the
+// browser: the toolbar only changes the URL with history.pushState, so they
+// respond right away instead of waiting for the server.
+export function ProjectGrid({ projects }: ProjectGridProps) {
+  const searchParams = useSearchParams();
+  const sort = parseProjectSort(searchParams.get(SORT_PARAM));
+  const favoritesOnly = parseFavoritesOnly(searchParams.get(FAVORITES_PARAM));
 
   if (projects.length === 0) return <ProjectGridEmpty />;
 
+  const sorted = sortProjects(projects, sort);
   const shown = favoritesOnly
-    ? projects.filter((project) => project.favorite)
-    : projects;
+    ? sorted.filter((project) => project.favorite)
+    : sorted;
 
   return (
     <div className="flex flex-1 flex-col gap-8">
