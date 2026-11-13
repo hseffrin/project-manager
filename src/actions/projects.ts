@@ -1,11 +1,18 @@
 "use server";
 
-import { del } from "@vercel/blob";
+import { copy, del } from "@vercel/blob";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/db/client";
-import { isOwnUploadUrl } from "@/utils/upload/upload-url";
+import {
+  blobFileName,
+  isOwnUploadUrl,
+  isTempUploadUrl,
+} from "@/utils/upload/upload-url";
+import { projectCoverPath } from "@/utils/upload/uploads";
+
+const INVALID_COVER = "Capa inválida, envie a imagem novamente";
 
 const requiredText = (message: string) =>
   z.string(message).trim().min(1, message);
@@ -22,7 +29,7 @@ const projectSchema = z
     endDate: z.iso.date("Selecione uma data válida"),
     cover: z
       .string("Envie uma imagem de capa")
-      .refine(isOwnUploadUrl, "Capa inválida, envie a imagem novamente"),
+      .refine(isOwnUploadUrl, INVALID_COVER),
   })
   // ISO dates (YYYY-MM-DD) compare correctly as strings.
   .refine((project) => project.endDate >= project.startDate, {
@@ -80,6 +87,31 @@ const parseProjectForm = (
   };
 };
 
+// The form uploads covers to a temporary folder; this moves one into the
+// project's folder (projects/<public_id>/): copy, point the project at the
+// copy, then delete the temporary file. Each step only runs if the previous
+// one worked, so the project never points at a missing file. A failure keeps
+// the temporary cover, which still works, and is only logged.
+const moveCoverToProjectFolder = async (
+  publicId: string,
+  tempUrl: string,
+): Promise<void> => {
+  try {
+    const { url } = await copy(
+      tempUrl,
+      projectCoverPath(publicId, blobFileName(tempUrl)),
+      { access: "public" },
+    );
+    await prisma.project.update({
+      where: { public_id: publicId },
+      data: { cover_url: url },
+    });
+    await del(tempUrl);
+  } catch (error) {
+    console.error("Failed to move project cover to its folder", error);
+  }
+};
+
 const createProject = async (
   _prevState: ProjectFormState,
   formData: FormData,
@@ -88,12 +120,23 @@ const createProject = async (
   const parsed = parseProjectForm(formData);
   if (!parsed.success) return parsed.state;
 
+  // A new project's cover must be a fresh upload: the project's folder only
+  // exists once the database creates its public id.
+  const cover = parsed.data.cover_url;
+  if (!isTempUploadUrl(cover)) return { errors: { cover: [INVALID_COVER] } };
+
+  let publicId: string;
   try {
-    await prisma.project.create({ data: parsed.data });
+    ({ public_id: publicId } = await prisma.project.create({
+      data: parsed.data,
+      select: { public_id: true },
+    }));
   } catch (error) {
     console.error("Failed to create project", error);
     return { message: "Não foi possível salvar o projeto. Tente novamente." };
   }
+
+  await moveCoverToProjectFolder(publicId, cover);
 
   // Outside the try: redirect() works by throwing.
   redirect("/");
@@ -111,6 +154,7 @@ const updateProject = async (
 
   const parsed = parseProjectForm(formData);
   if (!parsed.success) return parsed.state;
+  const cover = parsed.data.cover_url;
 
   let previousCover: string;
   try {
@@ -121,6 +165,11 @@ const updateProject = async (
     if (!project) return { message: "Projeto não encontrado." };
     previousCover = project.cover_url;
 
+    // Either the cover the project already has, or a fresh upload.
+    if (cover !== previousCover && !isTempUploadUrl(cover)) {
+      return { errors: { cover: [INVALID_COVER] } };
+    }
+
     await prisma.project.update({
       where: { public_id: id.data },
       data: parsed.data,
@@ -130,12 +179,11 @@ const updateProject = async (
     return { message: "Não foi possível salvar o projeto. Tente novamente." };
   }
 
+  if (cover !== previousCover) await moveCoverToProjectFolder(id.data, cover);
+
   // A new cover replaced the old one, which no project uses anymore. As in
   // deleteProject, a failure only leaves an orphan file, so just log it.
-  if (
-    previousCover !== parsed.data.cover_url &&
-    isOwnUploadUrl(previousCover)
-  ) {
+  if (cover !== previousCover && isOwnUploadUrl(previousCover)) {
     try {
       await del(previousCover);
     } catch (error) {

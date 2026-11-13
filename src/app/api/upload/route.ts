@@ -2,7 +2,7 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import {
   ALLOWED_CONTENT_TYPES,
   MAX_UPLOAD_BYTES,
-  UPLOAD_PREFIX,
+  TEMP_UPLOAD_PREFIX,
 } from "@/utils/upload/uploads";
 
 // Issues short-lived client tokens so the browser uploads straight to
@@ -18,7 +18,12 @@ export async function POST(request: Request) {
       onBeforeGenerateToken: async (pathname) => {
         // TODO: check the logged-in user here before issuing a token.
         // Without that, anyone who finds this route can upload to the store.
-        if (!pathname.startsWith(UPLOAD_PREFIX) || pathname.includes("..")) {
+        // Uploads only go to the temporary folder; saving a project moves the
+        // cover to its own folder on the server.
+        if (
+          !pathname.startsWith(TEMP_UPLOAD_PREFIX) ||
+          pathname.includes("..")
+        ) {
           throw new Error("Invalid upload path");
         }
 
