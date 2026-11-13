@@ -34,7 +34,7 @@ export function ProjectForm() {
   return (
     <Form.Root
       onSubmit={handleSubmit}
-      className="mx-auto mt-16 flex w-full max-w-md flex-col gap-5 rounded-xl border border-black/10 p-6 shadow-sm"
+      className="mx-auto flex w-full max-w-md flex-col gap-5 rounded-xl border border-black/10 p-6 shadow-sm"
     >
       <Form.Field
         className="group flex flex-col gap-1.5"
