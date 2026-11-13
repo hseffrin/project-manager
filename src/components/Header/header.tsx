@@ -56,6 +56,9 @@ function HeaderBar({ onSearchClick }: HeaderBarProps) {
           alt="Logo do Gerenciador de Projetos"
           width={193}
           height={72}
+          // Always above the fold and usually the Largest Contentful Paint,
+          // so it loads right away instead of lazily.
+          loading="eager"
         />
       </div>
       <div className="flex flex-1 justify-end">
