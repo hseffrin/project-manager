@@ -1,27 +1,21 @@
 import Image from "next/image";
 import { FavoriteButton } from "@/components/FavoriteButton/favorite-button";
-import {
-  MoreButton,
-  type MoreButtonOption,
-} from "@/components/MoreButton/more-button";
 import type { Project } from "@/db/generated/prisma/browser";
 import { formatLongDate, toIsoDate } from "@/utils/date-format";
 import calendarEndIcon from "./icons/calendar-end.svg";
 import calendarStartIcon from "./icons/calendar-start.svg";
 import placeholderImage from "./icons/placeholder.png";
+import { ProjectCardMenu } from "./project-card-menu";
 
 type ProjectCardProps = {
   project: Pick<
     Project,
-    "name" | "customer" | "date_start" | "date_end" | "cover_url"
+    "id" | "name" | "customer" | "date_start" | "date_end" | "cover_url"
   >;
-  // Items of the "…" popover. Actions must be Server Actions when the card
-  // is rendered by a Server Component.
-  options: Record<string, MoreButtonOption>;
 };
 
-export function ProjectCard({ project, options }: ProjectCardProps) {
-  const { name, customer, date_start, date_end, cover_url } = project;
+export function ProjectCard({ project }: ProjectCardProps) {
+  const { id, name, customer, date_start, date_end, cover_url } = project;
 
   return (
     <article className="overflow-hidden rounded-xl border border-black/10 bg-white">
@@ -37,7 +31,7 @@ export function ProjectCard({ project, options }: ProjectCardProps) {
 
         <div className="absolute right-3 bottom-3 flex items-center gap-3">
           <FavoriteButton />
-          <MoreButton options={options} />
+          <ProjectCardMenu project={{ id, name }} />
         </div>
       </div>
 
