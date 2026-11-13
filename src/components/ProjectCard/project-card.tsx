@@ -37,8 +37,9 @@ export function ProjectCard({ project, highlight }: ProjectCardProps) {
   } = project;
 
   return (
-    <article className="overflow-hidden rounded-xl border border-brand-border bg-white">
-      {/* 231px of cover + the 1px line below it, as in the designs. */}
+    <article className="overflow-hidden rounded-xl bg-white">
+      {/* As in the designs: the cover goes to the card's edge (no border
+          around it), 231px tall plus the 1px line below it. */}
       <div className="relative h-58 border-b border-brand-border">
         <Image
           src={cover_url || placeholderImage}
@@ -49,22 +50,24 @@ export function ProjectCard({ project, highlight }: ProjectCardProps) {
           className="object-cover"
         />
 
-        <div className="absolute right-3.75 bottom-4.5 flex items-center gap-4.5">
+        <div className="absolute right-4 bottom-4.5 flex items-center gap-4.5">
           <ProjectCardFavorite project={{ public_id, favorite }} />
           <ProjectCardMenu project={{ public_id, name }} />
         </div>
       </div>
 
-      <div className="p-6">
-        <h2 className="text-xl font-bold text-brand-card-title">
+      {/* The border only wraps the body. Spacing measured from the
+          designs (title, customer, divider and dates line up with them). */}
+      <div className="rounded-b-xl border-x border-b border-brand-border p-6 pb-5.5">
+        <h2 className="text-xl leading-6 font-bold text-brand-card-title">
           <Highlight text={name} query={highlight} />
         </h2>
-        <p className="mt-1 text-brand-card-label">
+        <p className="mt-2.5 text-brand-card-label">
           <span className="font-bold">Cliente:</span>{" "}
           <Highlight text={customer} query={highlight} />
         </p>
 
-        <hr className="my-4 border-black/[0.075]" />
+        <hr className="mt-3 mb-4 border-black/[0.075]" />
 
         <ul className="flex flex-col gap-4 text-brand-card-label">
           <li className="flex items-center gap-4">
