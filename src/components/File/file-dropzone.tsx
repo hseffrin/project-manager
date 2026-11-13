@@ -6,6 +6,7 @@ import { useEffect, useId, useState } from "react";
 import { ErrorCode, useDropzone } from "react-dropzone";
 
 import type { Accept, FileError, FileRejection } from "react-dropzone";
+import { deleteUnusedUpload } from "@/actions/uploads";
 import { Button } from "@/components/Button/button";
 import { IconButton } from "@/components/IconButton/icon-button";
 import deleteIcon from "@/components/icons/delete.svg";
@@ -34,7 +35,9 @@ type Upload =
       progress: number;
       controller: AbortController;
     }
-  | { status: "done"; url: string };
+  // uploaded: sent in this visit. False for the initial file (defaultUrl),
+  // which belongs to a saved project and must not be deleted here.
+  | { status: "done"; url: string; uploaded: boolean };
 
 type FileDropzoneProps = {
   /** Form field name that receives the uploaded file URL. */
@@ -51,6 +54,8 @@ type FileDropzoneProps = {
   error?: string;
   /** Called with true when a file is uploaded and nothing is uploading. */
   onReadyChange?: (ready: boolean) => void;
+  /** URL of a file already saved, shown as the initial preview (edit form). */
+  defaultUrl?: string;
 };
 
 // Single image picker: uploads the file straight to Blob and shows a preview.
@@ -64,9 +69,12 @@ export function FileDropzone({
   requiredMessage = "Envie um arquivo",
   error,
   onReadyChange,
+  defaultUrl,
 }: FileDropzoneProps) {
   const inputId = useId();
-  const [upload, setUpload] = useState<Upload | null>(null);
+  const [upload, setUpload] = useState<Upload | null>(
+    defaultUrl ? { status: "done", url: defaultUrl, uploaded: false } : null,
+  );
   const [uploadError, setUploadError] = useState<string>();
   const [blockedSubmit, setBlockedSubmit] = useState(false);
 
@@ -126,7 +134,7 @@ export function FileDropzone({
             prev?.status === "uploading" ? { ...prev, progress } : prev,
           ),
       });
-      setUpload({ status: "done", url });
+      setUpload({ status: "done", url, uploaded: true });
     } catch (uploadFailure) {
       if (controller.signal.aborted) return; // replaced or removed
       setUpload(null);
@@ -146,7 +154,7 @@ export function FileDropzone({
     setUploadError(undefined);
 
     // A new file replaces the current one.
-    if (upload?.status === "uploading") upload.controller.abort();
+    discardCurrent();
 
     if (rejections.length > 0) {
       setUpload(null);
@@ -156,14 +164,28 @@ export function FileDropzone({
     if (accepted[0]) startUpload(accepted[0]);
   }
 
-  function removeFile() {
+  // Stops the current upload, or deletes the file sent in this visit, since
+  // nothing will use it. The initial file stays: it belongs to the project
+  // until the form is saved with another one.
+  function discardCurrent() {
     if (upload?.status === "uploading") upload.controller.abort();
+    if (upload?.status === "done" && upload.uploaded) {
+      void deleteUnusedUpload(upload.url);
+    }
+  }
+
+  function removeFile() {
+    discardCurrent();
     setUpload(null);
   }
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={inputId} className="text-base text-brand-label">
+      {/* The file input only exists while there is no preview. */}
+      <label
+        htmlFor={ready ? undefined : inputId}
+        className="text-base text-brand-label"
+      >
         {label}
       </label>
 
