@@ -11,14 +11,8 @@ designs de desktop.
 ## Funcionalidades
 
 - **Lista de projetos** em cards, com a quantidade total no título.
-- **Favoritos:** a estrela de cada card marca o projeto, e a chave "Apenas
-  Favoritos" filtra a lista.
-- **Ordenação:** ordem alfabética, início mais próximo ou fim mais próximo.
-- **Busca** pelo nome do projeto ou do cliente:
-  - começa a partir de 3 letras, enquanto você digita;
-  - ignora acentos e maiúsculas;
-  - destaca o trecho encontrado nos cards;
-  - guarda as 5 últimas buscas no navegador.
+- **Favoritos:** a estrela de cada card marca o projeto.
+- **Filtros, ordenação e busca** na lista (veja a tabela abaixo).
 - **Criar e editar** projetos:
   - validação no navegador e no servidor (o nome precisa ter ao menos duas
     palavras, e a data final não pode ser antes da data de início);
@@ -28,8 +22,17 @@ designs de desktop.
 - **Carregamento:** skeletons no formato dos cards e do formulário enquanto os
   dados chegam.
 
-O filtro, a ordenação e a busca ficam na URL (`?favoritos=1`, `?ordem=…`,
-`/search?q=…`). Dá para compartilhar o link, e o "Voltar" do navegador funciona.
+### Filtros
+
+| Filtro           | O que faz                                                                                                                                                  | Na URL                                               |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| Apenas Favoritos | Mostra só os projetos marcados com a estrela.                                                                                                              | `?favoritos=1`                                       |
+| Ordenação        | Ordem alfabética, início mais próximo ou fim mais próximo.                                                                                                 | `?ordem=alfabetica`, `?ordem=inicio` ou `?ordem=fim` |
+| Busca            | Procura no nome do projeto e do cliente enquanto você digita, a partir de 3 letras, ignorando acentos e maiúsculas. Destaca o trecho encontrado nos cards. | `/search?q=…`                                        |
+
+Os filtros rodam no navegador, sem nova requisição ao servidor. Como ficam na
+URL, dá para compartilhar o link, e o "Voltar" do navegador funciona. A busca
+guarda as 5 últimas pesquisas no navegador.
 
 ## Tecnologias
 
