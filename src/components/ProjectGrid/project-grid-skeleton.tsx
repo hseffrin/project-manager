@@ -28,7 +28,7 @@ export function ProjectGridSkeleton({
         </div>
       )}
 
-      <div className="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-8">
         {[0, 1, 2].map((card) => (
           <ProjectCardSkeleton key={card} />
         ))}
