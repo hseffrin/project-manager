@@ -1,9 +1,11 @@
 import Image from "next/image";
 import { FavoriteButton } from "@/components/FavoriteButton/favorite-button";
+import {
+  CalendarEndIcon,
+  CalendarStartIcon,
+} from "@/components/icons/calendar-icons";
 import type { Project } from "@/db/generated/prisma/browser";
 import { formatLongDate, toIsoDate } from "@/utils/date-format";
-import calendarEndIcon from "./icons/calendar-end.svg";
-import calendarStartIcon from "./icons/calendar-start.svg";
 import placeholderImage from "./icons/placeholder.png";
 import { ProjectCardMenu } from "./project-card-menu";
 
@@ -45,13 +47,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
         <ul className="flex flex-col gap-3 text-brand-card-label">
           <li className="flex items-center gap-4">
-            <Image src={calendarStartIcon} alt="Data de início" />
+            <CalendarStartIcon title="Data de início" />
             <time dateTime={toIsoDate(date_start)}>
               {formatLongDate(date_start)}
             </time>
           </li>
           <li className="flex items-center gap-4">
-            <Image src={calendarEndIcon} alt="Data final" />
+            <CalendarEndIcon title="Data final" />
             <time dateTime={toIsoDate(date_end)}>
               {formatLongDate(date_end)}
             </time>
