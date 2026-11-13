@@ -1,5 +1,7 @@
 "use server";
 
+import { del } from "@vercel/blob";
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/db/client";
@@ -68,5 +70,42 @@ const createProject = async (
   redirect("/");
 };
 
-export { createProject };
-export type { CreateProjectState };
+type DeleteProjectState = {
+  message?: string;
+};
+
+const deleteProject = async (id: number): Promise<DeleteProjectState> => {
+  // TODO: check the logged-in user here once there is authentication.
+  const parsed = z.number().int().positive().safeParse(id);
+  if (!parsed.success) return { message: "Projeto inválido." };
+
+  let coverUrl: string;
+  try {
+    const project = await prisma.project.delete({
+      where: { id: parsed.data },
+      select: { cover_url: true },
+    });
+    coverUrl = project.cover_url;
+  } catch (error) {
+    console.error("Failed to delete project", error);
+    return { message: "Não foi possível remover o projeto. Tente novamente." };
+  }
+
+  // The project is already gone, so a failure here only leaves an orphan file
+  // in the Blob store; log it instead of reporting an error to the user.
+  if (isOwnUploadUrl(coverUrl)) {
+    try {
+      await del(coverUrl);
+    } catch (error) {
+      console.error("Failed to delete project cover", error);
+    }
+  }
+
+  // The home page is dynamic, so refreshing the router is enough to drop the
+  // removed card.
+  refresh();
+  return {};
+};
+
+export { createProject, deleteProject };
+export type { CreateProjectState, DeleteProjectState };
