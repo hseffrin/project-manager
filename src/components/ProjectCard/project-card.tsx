@@ -3,6 +3,7 @@ import {
   CalendarEndIcon,
   CalendarStartIcon,
 } from "@/components/icons/calendar-icons";
+import { Highlight } from "@/components/Highlight/highlight";
 import type { Project } from "@/db/generated/prisma/browser";
 import { formatLongDate, toIsoDate } from "@/utils/date-format";
 import placeholderImage from "./icons/placeholder.png";
@@ -20,9 +21,11 @@ type ProjectCardProps = {
     | "cover_url"
     | "favorite"
   >;
+  // Search text to highlight in the name and the customer (search results).
+  highlight?: string;
 };
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, highlight }: ProjectCardProps) {
   const {
     public_id,
     name,
@@ -52,9 +55,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
       </div>
 
       <div className="p-5">
-        <h2 className="text-lg font-bold text-brand-card-title">{name}</h2>
+        <h2 className="text-lg font-bold text-brand-card-title">
+          <Highlight text={name} query={highlight} />
+        </h2>
         <p className="mt-1 text-brand-card-label">
-          <span className="font-bold">Cliente:</span> {customer}
+          <span className="font-bold">Cliente:</span>{" "}
+          <Highlight text={customer} query={highlight} />
         </p>
 
         <hr className="my-4 border-black/10" />

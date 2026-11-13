@@ -23,6 +23,7 @@
   --color-brand-error: #c40000;
   --color-brand-button-primary-disabled: #b2a8ff;
   --color-brand-favorite: #ffb23d;
+  --color-brand-highlight: #ffb23d;
 }
 
 /* Tokens that point to other variables stay inline. */

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
-import { Header } from "@/components/Header/header";
+import { Header, HeaderFallback } from "@/components/Header/header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +26,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <Header />
+        {/* Header reads the pathname, which needs a Suspense boundary on
+            routes with dynamic params (Cache Components). */}
+        <Suspense fallback={<HeaderFallback />}>
+          <Header />
+        </Suspense>
         {children}
       </body>
     </html>

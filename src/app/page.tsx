@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { ProjectGrid } from "@/components/ProjectGrid/project-grid";
+import { ProjectGridSkeleton } from "@/components/ProjectGrid/project-grid-skeleton";
 import { prisma } from "@/db/client";
 
 // Loads every project on each request, so a new one shows up right away. The
@@ -32,7 +33,7 @@ export default function Home() {
     // flex-1 fills the height left below the header, so the empty state can
     // center itself on the screen.
     <main className="flex flex-1 flex-col px-8 py-16">
-      <Suspense fallback={<p>Carregando projetos...</p>}>
+      <Suspense fallback={<ProjectGridSkeleton withToolbar />}>
         <ProjectCards />
       </Suspense>
     </main>
