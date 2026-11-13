@@ -8,7 +8,13 @@ type ProjectGridProps = {
   // Already sorted by the query; the grid keeps the order it receives.
   projects: Pick<
     Project,
-    "public_id" | "name" | "customer" | "date_start" | "date_end" | "cover_url"
+    | "public_id"
+    | "name"
+    | "customer"
+    | "date_start"
+    | "date_end"
+    | "cover_url"
+    | "favorite"
   >[];
   // Current sort, shown in the toolbar select.
   sort: ProjectSort;

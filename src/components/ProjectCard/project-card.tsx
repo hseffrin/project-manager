@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { FavoriteButton } from "@/components/FavoriteButton/favorite-button";
 import {
   CalendarEndIcon,
   CalendarStartIcon,
@@ -7,18 +6,32 @@ import {
 import type { Project } from "@/db/generated/prisma/browser";
 import { formatLongDate, toIsoDate } from "@/utils/date-format";
 import placeholderImage from "./icons/placeholder.png";
+import { ProjectCardFavorite } from "./project-card-favorite";
 import { ProjectCardMenu } from "./project-card-menu";
 
 type ProjectCardProps = {
   project: Pick<
     Project,
-    "public_id" | "name" | "customer" | "date_start" | "date_end" | "cover_url"
+    | "public_id"
+    | "name"
+    | "customer"
+    | "date_start"
+    | "date_end"
+    | "cover_url"
+    | "favorite"
   >;
 };
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const { public_id, name, customer, date_start, date_end, cover_url } =
-    project;
+  const {
+    public_id,
+    name,
+    customer,
+    date_start,
+    date_end,
+    cover_url,
+    favorite,
+  } = project;
 
   return (
     <article className="overflow-hidden rounded-xl border border-black/10 bg-white">
@@ -33,7 +46,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
         />
 
         <div className="absolute right-3 bottom-3 flex items-center gap-3">
-          <FavoriteButton />
+          <ProjectCardFavorite project={{ public_id, favorite }} />
           <ProjectCardMenu project={{ public_id, name }} />
         </div>
       </div>

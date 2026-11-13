@@ -20,6 +20,7 @@ async function ProjectCards({ searchParams }: ProjectCardsProps) {
       date_start: true,
       date_end: true,
       cover_url: true,
+      favorite: true,
     },
     orderBy: PROJECT_SORTS[sort].orderBy,
   });
