@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Select, Switch } from "radix-ui";
 import { useId } from "react";
 import { Button } from "@/components/Button/button";
 import newIcon from "@/components/icons/new.svg";
+import { FAVORITES_PARAM } from "@/utils/project-favorites";
 import {
   isProjectSort,
   PROJECT_SORTS,
@@ -18,6 +19,8 @@ type ProjectToolbarProps = {
   count?: number;
   // The filters are optional, so the toolbar can be reused in other screens.
   showFavoritesFilter?: boolean;
+  // Current state of the "Apenas Favoritos" switch (?favoritos=1).
+  favoritesOnly?: boolean;
   // Current sort; the sort select only shows when this is passed.
   sort?: ProjectSort;
 };
@@ -26,18 +29,30 @@ export function ProjectToolbar({
   title,
   count,
   showFavoritesFilter = false,
+  favoritesOnly = false,
   sort,
 }: ProjectToolbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const favoritesId = useId();
 
-  // Keeps the other query params and only swaps ?ordem=.
-  function handleSortChange(value: string) {
-    if (!isProjectSort(value)) return;
+  // Changes one query param and keeps the others (sort and filter live
+  // together in the URL). null removes the param.
+  function updateSearchParam(key: string, value: string | null) {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("ordem", value);
-    router.push(`?${params.toString()}`, { scroll: false });
+    if (value === null) params.delete(key);
+    else params.set(key, value);
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+
+  function handleSortChange(value: string) {
+    if (isProjectSort(value)) updateSearchParam("ordem", value);
+  }
+
+  function handleFavoritesChange(checked: boolean) {
+    updateSearchParam(FAVORITES_PARAM, checked ? "1" : null);
   }
 
   return (
@@ -53,11 +68,12 @@ export function ProjectToolbar({
 
       <div className="ml-auto flex flex-wrap items-center gap-6">
         {showFavoritesFilter && (
-          // Visual only for now: projects have no favorite field yet.
           <div className="flex items-center gap-3">
             <Switch.Root
               id={favoritesId}
-              className="relative h-6 w-11 shrink-0 cursor-pointer rounded-full bg-zinc-600 transition-colors focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none data-[state=checked]:bg-brand-button-primary"
+              checked={favoritesOnly}
+              onCheckedChange={handleFavoritesChange}
+              className="relative h-6 w-11 shrink-0 cursor-pointer rounded-full bg-zinc-600 transition-colors focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none data-[state=checked]:bg-brand-favorite"
             >
               <Switch.Thumb className="block size-5 translate-x-0.5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5.5" />
             </Switch.Root>
