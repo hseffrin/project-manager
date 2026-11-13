@@ -23,6 +23,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-dropzone": "^20.2.0",
+    "react-loading-skeleton": "^3.5.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {

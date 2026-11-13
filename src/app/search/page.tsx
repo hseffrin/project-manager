@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import { NavigationBar } from "@/components/NavigationBar/navigation-bar";
+import { ProjectGridSkeleton } from "@/components/ProjectGrid/project-grid-skeleton";
 import { SearchResults } from "@/components/SearchResults/search-results";
 import { prisma } from "@/db/client";
 
@@ -32,7 +33,7 @@ export default function Search() {
   return (
     <main className="flex flex-1 flex-col gap-8 px-8 py-16">
       <NavigationBar title="Resultado da busca" />
-      <Suspense fallback={<p>Carregando projetos...</p>}>
+      <Suspense fallback={<ProjectGridSkeleton />}>
         <SearchResultsList />
       </Suspense>
     </main>
