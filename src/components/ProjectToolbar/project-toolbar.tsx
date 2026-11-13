@@ -11,6 +11,7 @@ import {
   isProjectSort,
   PROJECT_SORTS,
   type ProjectSort,
+  SORT_PARAM,
 } from "@/utils/project-sort";
 import chevronDownIcon from "./icons/chevron-down.svg";
 
@@ -48,21 +49,18 @@ export function ProjectToolbar({
     return query ? `${pathname}?${query}` : pathname;
   }
 
-  // The sort runs in the query, so it goes through the server.
-  function handleSortChange(value: string) {
-    if (isProjectSort(value)) {
-      router.push(urlWithParam("ordem", value), { scroll: false });
-    }
+  // The grid sorts and filters in the browser: changing the URL with the
+  // history API updates useSearchParams without a server round trip.
+  function pushParam(key: string, value: string | null) {
+    window.history.pushState(null, "", urlWithParam(key, value));
   }
 
-  // The grid filters favorites in the browser: changing the URL with the
-  // history API updates useSearchParams without a server round trip.
+  function handleSortChange(value: string) {
+    if (isProjectSort(value)) pushParam(SORT_PARAM, value);
+  }
+
   function handleFavoritesChange(checked: boolean) {
-    window.history.pushState(
-      null,
-      "",
-      urlWithParam(FAVORITES_PARAM, checked ? "1" : null),
-    );
+    pushParam(FAVORITES_PARAM, checked ? "1" : null);
   }
 
   return (
