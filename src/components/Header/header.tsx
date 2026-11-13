@@ -32,6 +32,15 @@ export function Header() {
     );
   }
 
+  return <HeaderBar onSearchClick={() => setSearchOpen(true)} />;
+}
+
+type HeaderBarProps = {
+  onSearchClick?: () => void;
+};
+
+// The regular dark header: logo in the middle, search button on the right.
+function HeaderBar({ onSearchClick }: HeaderBarProps) {
   return (
     <div className="flex h-20.25 items-center bg-brand-fg px-6">
       <div className="flex-1"></div>
@@ -47,9 +56,16 @@ export function Header() {
         <IconButton
           label="Buscar projeto"
           icon={<SearchIcon className="text-white" />}
-          onClick={() => setSearchOpen(true)}
+          onClick={onSearchClick}
         />
       </div>
     </div>
   );
+}
+
+// Shown while the Header waits for the pathname: the layout wraps it in
+// Suspense because on routes with dynamic params (/edit/[publicId]) the
+// pathname is only known at request time. Same look, so nothing jumps.
+export function HeaderFallback() {
+  return <HeaderBar />;
 }
