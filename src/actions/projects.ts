@@ -32,16 +32,26 @@ const projectSchema = z
 
 type ProjectField = keyof z.input<typeof projectSchema>;
 
-type CreateProjectState = {
+// State shown by the project form, for both create and update.
+type ProjectFormState = {
   errors?: Partial<Record<ProjectField, string[]>>;
   message?: string;
 };
 
-const createProject = async (
-  _prevState: CreateProjectState,
+type ProjectData = {
+  name: string;
+  customer: string;
+  date_start: Date;
+  date_end: Date;
+  cover_url: string;
+};
+
+// Validates the project form fields and maps them to the database columns.
+const parseProjectForm = (
   formData: FormData,
-): Promise<CreateProjectState> => {
-  // TODO: check the logged-in user here once there is authentication.
+):
+  | { success: true; data: ProjectData }
+  | { success: false; state: ProjectFormState } => {
   const parsed = projectSchema.safeParse({
     name: formData.get("project-name"),
     customer: formData.get("customer"),
@@ -51,23 +61,86 @@ const createProject = async (
   });
 
   if (!parsed.success) {
-    return { errors: z.flattenError(parsed.error).fieldErrors };
+    return {
+      success: false,
+      state: { errors: z.flattenError(parsed.error).fieldErrors },
+    };
   }
 
   const { name, customer, startDate, endDate, cover } = parsed.data;
+  return {
+    success: true,
+    data: {
+      name,
+      customer,
+      date_start: new Date(startDate),
+      date_end: new Date(endDate),
+      cover_url: cover,
+    },
+  };
+};
+
+const createProject = async (
+  _prevState: ProjectFormState,
+  formData: FormData,
+): Promise<ProjectFormState> => {
+  // TODO: check the logged-in user here once there is authentication.
+  const parsed = parseProjectForm(formData);
+  if (!parsed.success) return parsed.state;
+
   try {
-    await prisma.project.create({
-      data: {
-        name,
-        customer,
-        date_start: new Date(startDate),
-        date_end: new Date(endDate),
-        cover_url: cover,
-      },
-    });
+    await prisma.project.create({ data: parsed.data });
   } catch (error) {
     console.error("Failed to create project", error);
     return { message: "Não foi possível salvar o projeto. Tente novamente." };
+  }
+
+  // Outside the try: redirect() works by throwing.
+  redirect("/");
+};
+
+// Called with the project already bound: updateProject.bind(null, publicId).
+const updateProject = async (
+  publicId: string,
+  _prevState: ProjectFormState,
+  formData: FormData,
+): Promise<ProjectFormState> => {
+  // TODO: check the logged-in user here once there is authentication.
+  const id = z.uuid().safeParse(publicId);
+  if (!id.success) return { message: "Projeto inválido." };
+
+  const parsed = parseProjectForm(formData);
+  if (!parsed.success) return parsed.state;
+
+  let previousCover: string;
+  try {
+    const project = await prisma.project.findUnique({
+      where: { public_id: id.data },
+      select: { cover_url: true },
+    });
+    if (!project) return { message: "Projeto não encontrado." };
+    previousCover = project.cover_url;
+
+    await prisma.project.update({
+      where: { public_id: id.data },
+      data: parsed.data,
+    });
+  } catch (error) {
+    console.error("Failed to update project", error);
+    return { message: "Não foi possível salvar o projeto. Tente novamente." };
+  }
+
+  // A new cover replaced the old one, which no project uses anymore. As in
+  // deleteProject, a failure only leaves an orphan file, so just log it.
+  if (
+    previousCover !== parsed.data.cover_url &&
+    isOwnUploadUrl(previousCover)
+  ) {
+    try {
+      await del(previousCover);
+    } catch (error) {
+      console.error("Failed to delete previous project cover", error);
+    }
   }
 
   // Outside the try: redirect() works by throwing.
@@ -111,5 +184,5 @@ const deleteProject = async (publicId: string): Promise<DeleteProjectState> => {
   return {};
 };
 
-export { createProject, deleteProject };
-export type { CreateProjectState, DeleteProjectState };
+export { createProject, deleteProject, updateProject };
+export type { DeleteProjectState, ProjectFormState };

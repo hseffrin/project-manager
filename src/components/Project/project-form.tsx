@@ -11,7 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { createProject, type CreateProjectState } from "@/actions/projects";
+import { createProject, type ProjectFormState } from "@/actions/projects";
 import { Button } from "@/components/Button/button";
 import { FileDropzone } from "@/components/File/file-dropzone";
 import { IconButton } from "@/components/IconButton/icon-button";
@@ -27,7 +27,7 @@ const inputCls =
   "h-10 rounded border border-brand-input-border bg-white px-4 text-brand-fg outline-none focus:ring-2 focus:ring-brand-label/30 group-data-invalid:border-brand-error group-data-invalid:text-brand-error";
 const messageCls = "text-xs text-brand-error";
 
-const initialState: CreateProjectState = {};
+const initialState: ProjectFormState = {};
 
 // Shows the field's error as soon as the user leaves it: checkValidity() fires
 // the "invalid" event that Radix Form listens to.
