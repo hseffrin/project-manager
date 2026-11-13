@@ -88,18 +88,23 @@ function DateField({
     >
       <RequiredLabel>{label}</RequiredLabel>
       <div className="flex h-10 items-center gap-2 rounded border border-brand-input-border bg-white pr-1 pl-4 group-data-invalid:border-brand-error focus-within:ring-2 focus-within:ring-brand-label/30">
-        <Form.Control asChild>
-          <input
-            ref={inputRef}
-            type="date"
-            required
-            defaultValue={defaultValue}
-            min={min}
-            onBlur={validateOnBlur}
-            onChange={(event) => onValueChange?.(event.target.value)}
-            className="h-full min-w-0 flex-1 bg-transparent text-brand-fg outline-none group-data-invalid:text-brand-error [&::-webkit-calendar-picker-indicator]:hidden"
-          />
-        </Form.Control>
+        {/* The browser's own calendar button is hidden: in Chrome/Safari with
+            the pseudo-element; Firefox has none, so its input is 2rem wider
+            than this clipping box and the button falls outside. */}
+        <div className="flex h-full min-w-0 flex-1 overflow-hidden">
+          <Form.Control asChild>
+            <input
+              ref={inputRef}
+              type="date"
+              required
+              defaultValue={defaultValue}
+              min={min}
+              onBlur={validateOnBlur}
+              onChange={(event) => onValueChange?.(event.target.value)}
+              className="h-full w-full flex-none bg-transparent text-brand-fg outline-none group-data-invalid:text-brand-error supports-[-moz-appearance:none]:w-[calc(100%+2rem)] [&::-webkit-calendar-picker-indicator]:hidden"
+            />
+          </Form.Control>
+        </div>
         <IconButton
           label={`Abrir calendário: ${label}`}
           icon={
