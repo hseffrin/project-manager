@@ -43,6 +43,9 @@ export function SearchBar({ onClose }: SearchBarProps) {
     onSearchPage ? (searchParams.get(SEARCH_PARAM) ?? "") : "",
   );
   const [focused, setFocused] = useState(false);
+  // The X shows once there is text and stays after clearing, so a second
+  // click on the empty field closes the search.
+  const [closable, setClosable] = useState(query !== "");
   // On the server localStorage doesn't exist and this reads an empty list.
   // Both renders still match: the list only shows once the field has focus.
   const [history, setHistory] = useState(readSearchHistory);
@@ -84,6 +87,29 @@ export function SearchBar({ onClose }: SearchBarProps) {
     if (!event.currentTarget.value.trim() && !onSearchPage) onClose();
   }
 
+  function handleChange(value: string) {
+    setQuery(value);
+    if (value) setClosable(true);
+  }
+
+  // Closing on /search goes to the projects list; elsewhere the page stays
+  // and the regular header comes back.
+  function closeSearch() {
+    if (onSearchPage) router.push("/");
+    else onClose();
+  }
+
+  // First click clears the text (and shows the history); with the field
+  // already empty, it closes the search.
+  function handleCloseClick() {
+    if (query) {
+      setQuery("");
+      inputRef.current?.focus();
+    } else {
+      closeSearch();
+    }
+  }
+
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key !== "Escape") return;
     if (onSearchPage) inputRef.current?.blur();
@@ -120,12 +146,22 @@ export function SearchBar({ onClose }: SearchBarProps) {
           placeholder="Digite o nome do projeto..."
           autoFocus={!onSearchPage}
           value={query}
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => handleChange(event.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           className="h-full min-w-0 flex-1 bg-transparent text-brand-fg outline-none placeholder:text-brand-card-label"
         />
+        {closable && (
+          <IconButton
+            label={query ? "Limpar busca" : "Fechar busca"}
+            icon={<Image src={removeIcon} alt="" />}
+            // Keeps the focus in the field: a blur on an empty field would
+            // close the search before the click lands.
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={handleCloseClick}
+          />
+        )}
       </form>
 
       {showHistory && (
