@@ -44,7 +44,7 @@ export function ProjectGrid({ projects }: ProjectGridProps) {
     : sorted;
 
   return (
-    <div className="flex flex-1 flex-col gap-8">
+    <div className="flex flex-1 flex-col gap-5.5">
       <ProjectToolbar
         title="Projetos"
         // The total, even when the filter hides some (as in the designs).
@@ -65,7 +65,7 @@ export function ProjectGrid({ projects }: ProjectGridProps) {
           </p>
         </div>
       ) : (
-        <div className="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-8">
           {shown.map((project) => (
             <ProjectCard key={project.public_id} project={project} />
           ))}

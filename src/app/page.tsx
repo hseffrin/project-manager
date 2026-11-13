@@ -32,7 +32,7 @@ export default function Home() {
   return (
     // flex-1 fills the height left below the header, so the empty state can
     // center itself on the screen.
-    <main className="flex flex-1 flex-col px-8 py-16">
+    <main className="flex flex-1 flex-col px-10 pt-15 pb-16">
       <Suspense fallback={<ProjectGridSkeleton withToolbar />}>
         <ProjectCards />
       </Suspense>

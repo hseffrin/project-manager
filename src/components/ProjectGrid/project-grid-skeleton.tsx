@@ -14,21 +14,22 @@ export function ProjectGridSkeleton({
   withToolbar = false,
 }: ProjectGridSkeletonProps) {
   return (
-    <div role="status" className="flex flex-col gap-8">
+    <div role="status" className="flex flex-col gap-5.5">
       <span className="sr-only">Carregando projetos...</span>
 
+      {/* Same sizes as ProjectToolbar: switch + label, select and button. */}
       {withToolbar && (
         <div aria-hidden className="flex items-center gap-6">
-          <Skeleton width={160} height={32} />
-          <div className="ml-auto flex items-center gap-6">
-            <Skeleton width={176} height={24} borderRadius={9999} />
-            <Skeleton width={320} height={40} />
-            <Skeleton width={160} height={48} borderRadius={9999} />
+          <Skeleton width={150} height={32} />
+          <div className="ml-auto flex items-center gap-8">
+            <Skeleton width={186} height={24} borderRadius={9999} />
+            <Skeleton width={296} height={40} />
+            <Skeleton width={184} height={40} borderRadius={9999} />
           </div>
         </div>
       )}
 
-      <div className="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid w-full grid-cols-[repeat(auto-fill,minmax(18rem,1fr))] gap-8">
         {[0, 1, 2].map((card) => (
           <ProjectCardSkeleton key={card} />
         ))}

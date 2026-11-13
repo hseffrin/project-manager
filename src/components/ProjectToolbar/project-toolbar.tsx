@@ -65,25 +65,25 @@ export function ProjectToolbar({
 
   return (
     <div className="flex flex-wrap items-center gap-6">
-      <h1 className="flex items-baseline gap-2 text-2xl font-bold text-brand-title-h1">
+      <h1 className="flex items-baseline gap-4 text-2xl font-bold text-brand-title-h1">
         {title}
         {count !== undefined && (
-          <span className="text-base font-normal text-brand-label">
+          <span className="text-lg font-normal text-brand-label">
             ({count})
           </span>
         )}
       </h1>
 
-      <div className="ml-auto flex flex-wrap items-center gap-6">
+      <div className="ml-auto flex flex-wrap items-center gap-8">
         {showFavoritesFilter && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Switch.Root
               id={favoritesId}
               checked={favoritesOnly}
               onCheckedChange={handleFavoritesChange}
-              className="relative h-6 w-11 shrink-0 cursor-pointer rounded-full bg-zinc-600 transition-colors focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none data-[state=checked]:bg-brand-favorite"
+              className="relative h-6 w-12 shrink-0 cursor-pointer rounded-full bg-zinc-600 transition-colors focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none data-[state=checked]:bg-brand-favorite"
             >
-              <Switch.Thumb className="block size-5 translate-x-0.5 rounded-full bg-white transition-transform data-[state=checked]:translate-x-5.5" />
+              <Switch.Thumb className="block size-3.5 translate-x-1.25 rounded-full bg-white transition-transform data-[state=checked]:translate-x-7.25" />
             </Switch.Root>
             <label
               htmlFor={favoritesId}
@@ -98,7 +98,7 @@ export function ProjectToolbar({
           <Select.Root value={sort} onValueChange={handleSortChange}>
             <Select.Trigger
               aria-label="Ordenar projetos"
-              className="group flex h-10 w-80 cursor-pointer items-center justify-between rounded-md border border-black/40 bg-white px-4 text-brand-fg focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none"
+              className="group flex h-10 w-74 cursor-pointer items-center justify-between rounded border border-brand-input-border bg-white pr-2.5 pl-4 text-brand-fg focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none"
             >
               <Select.Value />
               {/* Points up while the list is open, as in the designs. */}
@@ -131,6 +131,7 @@ export function ProjectToolbar({
 
         <Button
           label="Novo projeto"
+          size="sm"
           icon={<Image src={newIcon} alt="" />}
           onClick={() => router.push("/new")}
         />
