@@ -22,6 +22,7 @@
   --color-brand-input-border: #717171;
   --color-brand-error: #c40000;
   --color-brand-button-primary-disabled: #b2a8ff;
+  --color-brand-favorite: #ffb23d;
 }
 
 /* Tokens that point to other variables stay inline. */

@@ -11,7 +11,9 @@ type ProjectCardsProps = {
 // shows up right away.
 async function ProjectCards({ searchParams }: ProjectCardsProps) {
   const sort = parseProjectSort((await searchParams).ordem);
-  // Only the fields the cards show: the numeric id never reaches the browser.
+  // All projects, also with "Apenas Favoritos" on: the grid filters them in
+  // the browser. Only the fields the cards show, so the numeric id never
+  // reaches the browser.
   const projects = await prisma.project.findMany({
     select: {
       public_id: true,
@@ -20,6 +22,7 @@ async function ProjectCards({ searchParams }: ProjectCardsProps) {
       date_start: true,
       date_end: true,
       cover_url: true,
+      favorite: true,
     },
     orderBy: PROJECT_SORTS[sort].orderBy,
   });
