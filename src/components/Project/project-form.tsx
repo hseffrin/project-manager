@@ -11,7 +11,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { createProject, type ProjectFormState } from "@/actions/projects";
+import {
+  createProject,
+  type ProjectFormState,
+  updateProject,
+} from "@/actions/projects";
 import { Button } from "@/components/Button/button";
 import { FileDropzone } from "@/components/File/file-dropzone";
 import { IconButton } from "@/components/IconButton/icon-button";
@@ -19,6 +23,8 @@ import {
   CalendarEndIcon,
   CalendarStartIcon,
 } from "@/components/icons/calendar-icons";
+import type { Project } from "@/db/generated/prisma/browser";
+import { toIsoDate } from "@/utils/date-format";
 
 const fieldCls = "group flex flex-col gap-1.5";
 const labelCls =
@@ -56,6 +62,7 @@ type DateFieldProps = {
   label: string;
   icon: typeof CalendarStartIcon;
   serverError?: string;
+  defaultValue?: string;
   min?: string;
   onValueChange?: (value: string) => void;
 };
@@ -67,6 +74,7 @@ function DateField({
   label,
   icon: Icon,
   serverError,
+  defaultValue,
   min,
   onValueChange,
 }: DateFieldProps) {
@@ -85,6 +93,7 @@ function DateField({
             ref={inputRef}
             type="date"
             required
+            defaultValue={defaultValue}
             min={min}
             onBlur={validateOnBlur}
             onChange={(event) => onValueChange?.(event.target.value)}
@@ -117,15 +126,25 @@ function DateField({
   );
 }
 
-export function ProjectForm() {
+type ProjectFormProps = {
+  // Project being edited. Without it the form creates a new project.
+  project?: Pick<
+    Project,
+    "public_id" | "name" | "customer" | "date_start" | "date_end" | "cover_url"
+  >;
+};
+
+export function ProjectForm({ project }: ProjectFormProps) {
   const [state, formAction, pending] = useActionState(
-    createProject,
+    project ? updateProject.bind(null, project.public_id) : createProject,
     initialState,
   );
+  const defaultStart = project ? toIsoDate(project.date_start) : "";
+  const defaultEnd = project ? toIsoDate(project.date_end) : "";
   const errors = state.errors ?? {};
 
   const formRef = useRef<HTMLFormElement>(null);
-  const [startDate, setStartDate] = useState("");
+  const [startDate, setStartDate] = useState(defaultStart);
   const [fieldsValid, setFieldsValid] = useState(false);
   const [coverReady, setCoverReady] = useState(false);
 
@@ -176,6 +195,7 @@ export function ProjectForm() {
               className={inputCls}
               type="text"
               required
+              defaultValue={project?.name}
               // At least two words.
               pattern="\s*\S+\s+\S+.*"
               onBlur={validateOnBlur}
@@ -205,6 +225,7 @@ export function ProjectForm() {
               className={inputCls}
               type="text"
               required
+              defaultValue={project?.customer}
               // At least one word, not only spaces.
               pattern=".*\S.*"
               onBlur={validateOnBlur}
@@ -229,10 +250,12 @@ export function ProjectForm() {
             label="Data de Início"
             icon={CalendarStartIcon}
             serverError={errors.startDate?.[0]}
+            defaultValue={defaultStart}
             onValueChange={setStartDate}
           />
           <DateField
             name="end-date"
+            defaultValue={defaultEnd}
             label="Data Final"
             icon={CalendarEndIcon}
             serverError={errors.endDate?.[0]}
@@ -249,6 +272,7 @@ export function ProjectForm() {
           requiredMessage="Envie uma imagem de capa"
           error={errors.cover?.[0]}
           onReadyChange={setCoverReady}
+          defaultUrl={project?.cover_url}
         />
 
         {state.message && (
