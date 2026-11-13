@@ -1,36 +1,138 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gerenciador de Projetos
 
-## Getting Started
+Aplicação web para cadastrar e acompanhar projetos: nome, cliente, datas de
+início e fim e uma imagem de capa. Feita com Next.js, a partir de um conjunto de
+designs de desktop.
 
-First, run the development server:
+**Deploy:** https://hseffrin-project-manager.vercel.app/
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+![Página inicial com a lista de projetos](docs/home.png)
+
+## Funcionalidades
+
+- **Lista de projetos** em cards, com a quantidade total no título.
+- **Favoritos:** a estrela de cada card marca o projeto, e a chave "Apenas
+  Favoritos" filtra a lista.
+- **Ordenação:** ordem alfabética, início mais próximo ou fim mais próximo.
+- **Busca** pelo nome do projeto ou do cliente:
+  - começa a partir de 3 letras, enquanto você digita;
+  - ignora acentos e maiúsculas;
+  - destaca o trecho encontrado nos cards;
+  - guarda as 5 últimas buscas no navegador.
+- **Criar e editar** projetos:
+  - validação no navegador e no servidor (o nome precisa ter ao menos duas
+    palavras, e a data final não pode ser antes da data de início);
+  - capa opcional, em `.jpg` ou `.png` de até 4 MB, com barra de progresso e
+    pré-visualização.
+- **Remover** projetos, com confirmação. A capa é apagada junto.
+- **Carregamento:** skeletons no formato dos cards e do formulário enquanto os
+  dados chegam.
+
+O filtro, a ordenação e a busca ficam na URL (`?favoritos=1`, `?ordem=…`,
+`/search?q=…`). Dá para compartilhar o link, e o "Voltar" do navegador funciona.
+
+## Tecnologias
+
+- [Next.js 16](https://nextjs.org) (App Router, Server Actions e Cache
+  Components) com React 19 e TypeScript.
+- [Tailwind CSS 4](https://tailwindcss.com), com as cores do design como tokens
+  em `src/app/globals.css`, e a fonte Encode Sans.
+- [Radix UI](https://www.radix-ui.com) para os componentes acessíveis:
+  formulário, switch, select, popover, modal, toggle e barra de progresso.
+- [Prisma 7](https://www.prisma.io) com PostgreSQL.
+- [Vercel Blob](https://vercel.com/docs/storage/vercel-blob) para as capas.
+- [Zod](https://zod.dev) para validar os dados no servidor.
+- [react-dropzone](https://react-dropzone.js.org) para o upload e
+  [react-loading-skeleton](https://github.com/dvtng/react-loading-skeleton)
+  para os skeletons.
+
+## Como rodar
+
+### Pré-requisitos
+
+- Node.js 20.9 ou mais novo.
+- [pnpm](https://pnpm.io).
+- Um banco PostgreSQL.
+- Um store do Vercel Blob com acesso público (Vercel > Storage > Blob).
+
+### Passo a passo
+
+1. Instale as dependências. O `postinstall` já gera o cliente do Prisma.
+
+   ```bash
+   pnpm install
+   ```
+
+2. Crie o `.env.local` a partir do exemplo e preencha `DATABASE_URL` e
+   `BLOB_READ_WRITE_TOKEN`:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+3. Crie as tabelas no banco:
+
+   ```bash
+   pnpm prisma db push
+   ```
+
+4. Suba o servidor de desenvolvimento e abra http://localhost:3000:
+
+   ```bash
+   pnpm dev
+   ```
+
+Em desenvolvimento, os arquivos enviados vão para a pasta `test/` do Blob, para
+não se misturarem com os de produção caso o store seja o mesmo.
+
+### Scripts
+
+| Comando             | O que faz                                  |
+| ------------------- | ------------------------------------------ |
+| `pnpm dev`          | Servidor de desenvolvimento.               |
+| `pnpm build`        | Build de produção.                         |
+| `pnpm start`        | Sobe o build de produção.                  |
+| `pnpm lint`         | ESLint.                                    |
+| `pnpm typecheck`    | Checagem de tipos (`tsc --noEmit`).        |
+| `pnpm format`       | Formata o projeto com o Prettier.          |
+| `pnpm format:check` | Confere a formatação sem alterar arquivos. |
+
+## Estrutura
+
+```
+src/
+├── actions/      Server Actions (projetos e uploads)
+├── app/          Rotas: / (lista), /new, /edit/[publicId], /search e /api/upload
+├── components/   Componentes de interface, um por pasta
+├── db/           Schema do Prisma (models/*.prisma) e cliente do banco
+└── utils/        Funções auxiliares: busca, ordenação, datas e upload
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Decisões técnicas
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Id público:** cada projeto tem um `public_id` (UUID gerado pelo banco),
+  usado nas URLs e nas actions. O id numérico nunca chega ao navegador.
+- **Filtro, ordenação e busca no navegador:** a página carrega os projetos uma
+  vez, e as mudanças na URL não fazem nova requisição ao servidor. Assim a
+  resposta é imediata.
+- **Upload direto para o Blob:** o navegador envia a capa direto para o Vercel
+  Blob, com um token de curta duração emitido por `/api/upload`. O arquivo não
+  passa pelo servidor do app e não esbarra no limite de tamanho das funções.
+- **Capas por projeto:** o upload vai para `tmp/`. Ao salvar, a capa é movida
+  para `projects/<public_id>/`. Uploads descartados no formulário são apagados,
+  e trocar a capa apaga a anterior.
+- **Validação em dobro:** o formulário valida enquanto você preenche, e a Server
+  Action valida de novo com Zod antes de gravar.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Qualidade de código
 
-## Learn More
+- Prettier e ESLint, rodados no commit pelo husky com lint-staged, junto com a
+  checagem de tipos.
+- Mensagens de commit no padrão
+  [Conventional Commits](https://www.conventionalcommits.org), com o
+  commitizen.
 
-To learn more about Next.js, take a look at the following resources:
+## Deploy
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+O deploy é feito na [Vercel](https://vercel.com). Configure as mesmas variáveis
+do `.env.local` (`DATABASE_URL` e `BLOB_READ_WRITE_TOKEN`) no projeto da Vercel.
