@@ -132,7 +132,8 @@ export function SearchBar({ onClose }: SearchBarProps) {
   const showHistory = focused && !query && history.length > 0;
 
   return (
-    <div className="relative z-20 h-20.25 bg-white shadow-sm">
+    // The white bar has a lighter, shorter shadow than the dark header.
+    <div className="relative z-20 h-20 bg-white shadow-[0_2px_4px_rgba(0,0,0,0.25)]">
       <form
         role="search"
         onSubmit={handleSubmit}
@@ -153,7 +154,7 @@ export function SearchBar({ onClose }: SearchBarProps) {
           onFocus={() => setFocused(true)}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          className="h-full min-w-0 flex-1 bg-transparent text-brand-fg outline-none placeholder:text-brand-card-label"
+          className="h-full min-w-0 flex-1 bg-transparent text-lg text-brand-fg outline-none placeholder:text-brand-card-label"
         />
         {closable && (
           <IconButton
@@ -180,7 +181,7 @@ export function SearchBar({ onClose }: SearchBarProps) {
               <button
                 type="button"
                 onClick={() => handleHistoryClick(term)}
-                className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left text-brand-card-label hover:text-brand-fg"
+                className="flex min-w-0 flex-1 cursor-pointer items-center gap-4 text-left text-brand-card-label hover:text-brand-fg"
               >
                 <Image src={historyIcon} alt="" />
                 <span className="truncate">{term}</span>
@@ -189,6 +190,8 @@ export function SearchBar({ onClose }: SearchBarProps) {
                 label={`Remover "${term}" do histórico`}
                 icon={<Image src={removeIcon} alt="" />}
                 onClick={() => handleHistoryRemove(term)}
+                // The icon lines up with the row padding, as in the designs.
+                className="-mr-2"
               />
             </li>
           ))}

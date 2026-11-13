@@ -26,7 +26,11 @@ export function Header() {
     return (
       // The bar reads ?q= (useSearchParams), which needs a Suspense boundary.
       // The fallback is an empty white bar of the same height.
-      <Suspense fallback={<div className="h-20.25 bg-white shadow-sm" />}>
+      <Suspense
+        fallback={
+          <div className="h-20 bg-white shadow-[0_2px_4px_rgba(0,0,0,0.25)]" />
+        }
+      >
         <SearchBar onClose={() => setSearchOpen(false)} />
       </Suspense>
     );
@@ -42,7 +46,9 @@ type HeaderBarProps = {
 // The regular dark header: logo in the middle, search button on the right.
 function HeaderBar({ onSearchClick }: HeaderBarProps) {
   return (
-    <div className="flex h-20.25 items-center bg-brand-fg px-6">
+    // 80px tall with the designs' drop shadow; the search icon sits 63px from
+    // the right edge, as in the designs.
+    <div className="relative z-10 flex h-20 items-center bg-brand-fg pr-14 pl-6 shadow-[0_4px_4px_rgba(0,0,0,0.25)]">
       <div className="flex-1"></div>
       <div className="flex-none">
         <Image
