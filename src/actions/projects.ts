@@ -12,8 +12,12 @@ const requiredText = (message: string) =>
 
 const projectSchema = z
   .object({
-    name: requiredText("Informe o nome do projeto"),
-    customer: requiredText("Informe o cliente"),
+    // Same messages and rules as the form fields.
+    name: requiredText("Por favor, digite ao menos duas palavras").refine(
+      (name) => name.split(/\s+/).length >= 2,
+      "Por favor, digite ao menos duas palavras",
+    ),
+    customer: requiredText("Por favor, digite ao menos uma palavra"),
     startDate: z.iso.date("Selecione uma data válida"),
     endDate: z.iso.date("Selecione uma data válida"),
     cover: z

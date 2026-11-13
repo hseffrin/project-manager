@@ -1,18 +1,121 @@
 "use client";
 
 import { Form } from "radix-ui";
-import { type FormEvent, startTransition, useActionState } from "react";
+import {
+  type FocusEvent,
+  type FormEvent,
+  type ReactNode,
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { createProject, type CreateProjectState } from "@/actions/projects";
+import { Button } from "@/components/Button/button";
 import { FileDropzone } from "@/components/File/file-dropzone";
-import { normalizeFileSize } from "@/utils/string-format";
-import { MAX_UPLOAD_BYTES } from "@/utils/upload/uploads";
+import { IconButton } from "@/components/IconButton/icon-button";
+import {
+  CalendarEndIcon,
+  CalendarStartIcon,
+} from "@/components/icons/calendar-icons";
 
-const fieldCls =
-  "rounded-md border border-black/15 bg-transparent px-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 data-invalid:border-red-500";
-const labelCls = "text-sm font-medium group-data-invalid:text-red-600";
-const messageCls = "text-xs text-red-600";
+const fieldCls = "group flex flex-col gap-1.5";
+const labelCls =
+  "text-base text-brand-label group-data-invalid:text-brand-error";
+const inputCls =
+  "h-10 rounded border border-brand-input-border bg-white px-4 text-brand-fg outline-none focus:ring-2 focus:ring-brand-label/30 group-data-invalid:border-brand-error group-data-invalid:text-brand-error";
+const messageCls = "text-xs text-brand-error";
 
 const initialState: CreateProjectState = {};
+
+// Shows the field's error as soon as the user leaves it: checkValidity() fires
+// the "invalid" event that Radix Form listens to.
+function validateOnBlur(event: FocusEvent<HTMLInputElement>) {
+  event.currentTarget.checkValidity();
+}
+
+type RequiredLabelProps = {
+  children: ReactNode;
+};
+
+// Field label followed by the gray "(Obrigatório)"; both turn red on error.
+function RequiredLabel({ children }: RequiredLabelProps) {
+  return (
+    <Form.Label className={labelCls}>
+      {children}{" "}
+      <span className="text-xs text-brand-label-required group-data-invalid:text-brand-error">
+        (Obrigatório)
+      </span>
+    </Form.Label>
+  );
+}
+
+type DateFieldProps = {
+  name: string;
+  label: string;
+  icon: typeof CalendarStartIcon;
+  serverError?: string;
+  min?: string;
+  onValueChange?: (value: string) => void;
+};
+
+// Date input with the design's calendar icon instead of the browser's: the
+// native indicator is hidden and the icon opens the native picker.
+function DateField({
+  name,
+  label,
+  icon: Icon,
+  serverError,
+  min,
+  onValueChange,
+}: DateFieldProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <Form.Field
+      className={fieldCls}
+      name={name}
+      serverInvalid={Boolean(serverError)}
+    >
+      <RequiredLabel>{label}</RequiredLabel>
+      <div className="flex h-10 items-center gap-2 rounded border border-brand-input-border bg-white pr-1 pl-4 group-data-invalid:border-brand-error focus-within:ring-2 focus-within:ring-brand-label/30">
+        <Form.Control asChild>
+          <input
+            ref={inputRef}
+            type="date"
+            required
+            min={min}
+            onBlur={validateOnBlur}
+            onChange={(event) => onValueChange?.(event.target.value)}
+            className="h-full min-w-0 flex-1 bg-transparent text-brand-fg outline-none group-data-invalid:text-brand-error [&::-webkit-calendar-picker-indicator]:hidden"
+          />
+        </Form.Control>
+        <IconButton
+          label={`Abrir calendário: ${label}`}
+          icon={
+            <Icon className="text-brand-card-label group-data-invalid:text-brand-error" />
+          }
+          onClick={() => inputRef.current?.showPicker()}
+        />
+      </div>
+      <Form.Message className={messageCls} match="valueMissing">
+        Selecione uma data válida
+      </Form.Message>
+      <Form.Message className={messageCls} match="badInput">
+        Selecione uma data válida
+      </Form.Message>
+      <Form.Message className={messageCls} match="rangeUnderflow">
+        A data final não pode ser antes da data de início
+      </Form.Message>
+      {serverError && (
+        <Form.Message className={messageCls} forceMatch>
+          {serverError}
+        </Form.Message>
+      )}
+    </Form.Field>
+  );
+}
 
 export function ProjectForm() {
   const [state, formAction, pending] = useActionState(
@@ -21,10 +124,33 @@ export function ProjectForm() {
   );
   const errors = state.errors ?? {};
 
+  const formRef = useRef<HTMLFormElement>(null);
+  const [startDate, setStartDate] = useState("");
+  const [fieldsValid, setFieldsValid] = useState(false);
+  const [coverReady, setCoverReady] = useState(false);
+
+  // The button stays disabled until every field is valid. Reading
+  // validity.valid doesn't fire "invalid", so no error shows up early. The
+  // cover is tracked apart because its picker is invalid until the upload ends.
+  function updateFieldsValid() {
+    const controls = [
+      ...(formRef.current?.querySelectorAll<HTMLInputElement>(
+        'input[type="text"], input[type="date"]',
+      ) ?? []),
+    ];
+    setFieldsValid(
+      controls.length > 0 &&
+        controls.every((control) => control.validity.valid),
+    );
+  }
+
+  // The end date's min follows the start date, which can make it invalid
+  // without any event on the end date input.
+  useEffect(updateFieldsValid, [startDate]);
+
   // Submit through onSubmit instead of <form action>: React resets the form
   // after an action runs, which would wipe what the user typed whenever the
-  // server returns validation errors. The browser only fires submit once the
-  // native validation (required fields, cover uploaded) passes.
+  // server returns validation errors.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
@@ -33,40 +159,61 @@ export function ProjectForm() {
 
   return (
     <Form.Root
+      ref={formRef}
       onSubmit={handleSubmit}
-      className="mx-auto flex w-full max-w-md flex-col gap-5 rounded-xl border border-black/10 p-6 shadow-sm"
+      onInput={updateFieldsValid}
+      className="flex w-full justify-center rounded border border-brand-border px-6 py-12"
     >
-      <Form.Field
-        className="group flex flex-col gap-1.5"
-        name="project-name"
-        serverInvalid={Boolean(errors.name)}
-      >
-        <div className="flex items-baseline justify-between">
-          <Form.Label className={labelCls}>
-            Nome do projeto (obrigatório)
-          </Form.Label>
+      <div className="flex w-full max-w-176 flex-col gap-8">
+        <Form.Field
+          className={fieldCls}
+          name="project-name"
+          serverInvalid={Boolean(errors.name)}
+        >
+          <RequiredLabel>Nome do projeto</RequiredLabel>
+          <Form.Control asChild>
+            <input
+              className={inputCls}
+              type="text"
+              required
+              // At least two words.
+              pattern="\s*\S+\s+\S+.*"
+              onBlur={validateOnBlur}
+            />
+          </Form.Control>
           <Form.Message className={messageCls} match="valueMissing">
-            Por favor digite ao menos duas palavras
+            Por favor, digite ao menos duas palavras
+          </Form.Message>
+          <Form.Message className={messageCls} match="patternMismatch">
+            Por favor, digite ao menos duas palavras
           </Form.Message>
           {errors.name && (
             <Form.Message className={messageCls} forceMatch>
               {errors.name[0]}
             </Form.Message>
           )}
-        </div>
-        <Form.Control asChild>
-          <input className={`h-10 ${fieldCls}`} type="text" required />
-        </Form.Control>
-      </Form.Field>
+        </Form.Field>
 
-      <Form.Field
-        className="group flex flex-col gap-1.5"
-        name="customer"
-        serverInvalid={Boolean(errors.customer)}
-      >
-        <div className="flex items-baseline justify-between">
-          <Form.Label className={labelCls}>Cliente (obrigatório)</Form.Label>
+        <Form.Field
+          className={fieldCls}
+          name="customer"
+          serverInvalid={Boolean(errors.customer)}
+        >
+          <RequiredLabel>Cliente</RequiredLabel>
+          <Form.Control asChild>
+            <input
+              className={inputCls}
+              type="text"
+              required
+              // At least one word, not only spaces.
+              pattern=".*\S.*"
+              onBlur={validateOnBlur}
+            />
+          </Form.Control>
           <Form.Message className={messageCls} match="valueMissing">
+            Por favor, digite ao menos uma palavra
+          </Form.Message>
+          <Form.Message className={messageCls} match="patternMismatch">
             Por favor, digite ao menos uma palavra
           </Form.Message>
           {errors.customer && (
@@ -74,83 +221,50 @@ export function ProjectForm() {
               {errors.customer[0]}
             </Form.Message>
           )}
+        </Form.Field>
+
+        <div className="grid grid-cols-2 gap-10">
+          <DateField
+            name="start-date"
+            label="Data de Início"
+            icon={CalendarStartIcon}
+            serverError={errors.startDate?.[0]}
+            onValueChange={setStartDate}
+          />
+          <DateField
+            name="end-date"
+            label="Data Final"
+            icon={CalendarEndIcon}
+            serverError={errors.endDate?.[0]}
+            min={startDate || undefined}
+          />
         </div>
-        <Form.Control asChild>
-          <input className={`h-10 ${fieldCls}`} type="text" required />
-        </Form.Control>
-      </Form.Field>
 
-      <Form.Field
-        className="group flex flex-col gap-1.5"
-        name="start-date"
-        serverInvalid={Boolean(errors.startDate)}
-      >
-        <div className="flex items-baseline justify-between">
-          <Form.Label className={labelCls}>
-            Data de Início (Obrigatório)
-          </Form.Label>
-          <Form.Message className={messageCls} match="valueMissing">
-            Selecione uma data válida
-          </Form.Message>
-          {errors.startDate && (
-            <Form.Message className={messageCls} forceMatch>
-              {errors.startDate[0]}
-            </Form.Message>
-          )}
-        </div>
-        <Form.Control asChild>
-          <input className={`h-10 ${fieldCls}`} type="date" required />
-        </Form.Control>
-      </Form.Field>
+        <FileDropzone
+          name="cover"
+          label="Capa do projeto"
+          accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"] }}
+          hint="Escolha uma imagem .jpg ou .png no seu dispositivo"
+          required
+          requiredMessage="Envie uma imagem de capa"
+          error={errors.cover?.[0]}
+          onReadyChange={setCoverReady}
+        />
 
-      <Form.Field
-        className="group flex flex-col gap-1.5"
-        name="end-date"
-        serverInvalid={Boolean(errors.endDate)}
-      >
-        <div className="flex items-baseline justify-between">
-          <Form.Label className={labelCls}>
-            Data de Final (Obrigatório)
-          </Form.Label>
-          <Form.Message className={messageCls} match="valueMissing">
-            Selecione uma data válida
-          </Form.Message>
-          {errors.endDate && (
-            <Form.Message className={messageCls} forceMatch>
-              {errors.endDate[0]}
-            </Form.Message>
-          )}
-        </div>
-        <Form.Control asChild>
-          <input className={`h-10 ${fieldCls}`} type="date" required />
-        </Form.Control>
-      </Form.Field>
+        {state.message && (
+          <p className="text-sm text-brand-error" role="alert">
+            {state.message}
+          </p>
+        )}
 
-      <FileDropzone
-        name="cover"
-        label="Capa (obrigatório)"
-        accept={{ "image/*": [] }}
-        hint={`Uma imagem, até ${normalizeFileSize(MAX_UPLOAD_BYTES)}`}
-        multiple={false}
-        required
-        requiredMessage="Envie uma imagem de capa"
-        error={errors.cover?.[0]}
-      />
-
-      {state.message && (
-        <p className="text-sm text-red-600" role="alert">
-          {state.message}
-        </p>
-      )}
-
-      <Form.Submit asChild>
-        <button
-          disabled={pending}
-          className="mt-2 h-10 rounded-md bg-foreground px-4 text-sm font-medium text-background transition hover:opacity-90 focus-visible:ring-2 focus-visible:ring-blue-500/50 focus-visible:outline-none disabled:opacity-50"
-        >
-          {pending ? "Salvando..." : "Salvar Projeto"}
-        </button>
-      </Form.Submit>
+        <Form.Submit asChild>
+          <Button
+            label={pending ? "Salvando..." : "Salvar projeto"}
+            fullWidth
+            disabled={!fieldsValid || !coverReady || pending}
+          />
+        </Form.Submit>
+      </div>
     </Form.Root>
   );
 }
