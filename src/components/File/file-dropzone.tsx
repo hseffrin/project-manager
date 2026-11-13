@@ -189,8 +189,15 @@ export function FileDropzone({
         {label}
       </label>
 
+      {/* Different keys so React creates new elements when switching: reusing
+          the <img> made Firefox stretch the upload icon over the whole preview
+          until the cover loaded. */}
       {upload?.status === "done" ? (
-        <div className="relative aspect-video w-full overflow-hidden rounded">
+        <div
+          key="preview"
+          // Light background while the cover is still loading.
+          className="relative aspect-video w-full overflow-hidden rounded bg-brand-label/10"
+        >
           <Image
             src={upload.url}
             alt="Capa escolhida"
@@ -208,6 +215,7 @@ export function FileDropzone({
         </div>
       ) : (
         <div
+          key="dropzone"
           {...getRootProps({
             className: `flex flex-col items-center justify-center gap-4 rounded border border-dashed px-4 py-6 text-center transition ${
               isDragReject || shownError
