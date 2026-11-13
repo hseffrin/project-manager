@@ -1,11 +1,15 @@
+"use client";
+
+import { useSearchParams } from "next/navigation";
 import { ProjectCard } from "@/components/ProjectCard/project-card";
 import { ProjectToolbar } from "@/components/ProjectToolbar/project-toolbar";
 import type { Project } from "@/db/generated/prisma/browser";
+import { FAVORITES_PARAM, parseFavoritesOnly } from "@/utils/project-favorites";
 import type { ProjectSort } from "@/utils/project-sort";
 import { ProjectGridEmpty } from "./project-grid-empty";
 
 type ProjectGridProps = {
-  // Already sorted by the query; the grid keeps the order it receives.
+  // All projects, already sorted by the query; the grid keeps the order.
   projects: Pick<
     Project,
     | "public_id"
@@ -16,35 +20,37 @@ type ProjectGridProps = {
     | "cover_url"
     | "favorite"
   >[];
-  // Number of projects in the database, shown in the title even when the
-  // favorites filter hides some of them.
-  total: number;
   // Current sort, shown in the toolbar select.
   sort: ProjectSort;
-  // "Apenas Favoritos" on: projects only has the favorites.
-  favoritesOnly: boolean;
 };
 
 // The empty state centers itself in the remaining height, so render the grid
 // inside a flex-1 container.
-export function ProjectGrid({
-  projects,
-  total,
-  sort,
-  favoritesOnly,
-}: ProjectGridProps) {
-  if (total === 0) return <ProjectGridEmpty />;
+// "Apenas Favoritos" (?favoritos=1) filters here, in the browser: the switch
+// only changes the URL with history.pushState, so it responds right away
+// instead of waiting for the server.
+export function ProjectGrid({ projects, sort }: ProjectGridProps) {
+  const favoritesOnly = parseFavoritesOnly(
+    useSearchParams().get(FAVORITES_PARAM),
+  );
+
+  if (projects.length === 0) return <ProjectGridEmpty />;
+
+  const shown = favoritesOnly
+    ? projects.filter((project) => project.favorite)
+    : projects;
 
   return (
     <div className="flex flex-1 flex-col gap-8">
       <ProjectToolbar
         title="Projetos"
-        count={total}
+        // The total, even when the filter hides some (as in the designs).
+        count={projects.length}
         showFavoritesFilter
         favoritesOnly={favoritesOnly}
         sort={sort}
       />
-      {projects.length === 0 ? (
+      {shown.length === 0 ? (
         // Only happens with the favorites filter on: there are projects, but
         // none is a favorite. Centered in the height left below the toolbar.
         <div className="flex flex-1 flex-col items-center justify-center text-center">
@@ -57,7 +63,7 @@ export function ProjectGrid({
         </div>
       ) : (
         <div className="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
+          {shown.map((project) => (
             <ProjectCard key={project.public_id} project={project} />
           ))}
         </div>

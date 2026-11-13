@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { ProjectGrid } from "@/components/ProjectGrid/project-grid";
 import { prisma } from "@/db/client";
-import { FAVORITES_PARAM, parseFavoritesOnly } from "@/utils/project-favorites";
 import { PROJECT_SORTS, parseProjectSort } from "@/utils/project-sort";
 
 type ProjectCardsProps = {
@@ -11,15 +10,11 @@ type ProjectCardsProps = {
 // Reading searchParams makes this render on every request, so a new project
 // shows up right away.
 async function ProjectCards({ searchParams }: ProjectCardsProps) {
-  const params = await searchParams;
-  const sort = parseProjectSort(params.ordem);
-  const favoritesOnly = parseFavoritesOnly(params[FAVORITES_PARAM]);
-
-  // The title always shows the total, even with "Apenas Favoritos" on.
-  const totalQuery = prisma.project.count();
-  // Only the fields the cards show: the numeric id never reaches the browser.
-  const projectsQuery = prisma.project.findMany({
-    where: favoritesOnly ? { favorite: true } : undefined,
+  const sort = parseProjectSort((await searchParams).ordem);
+  // All projects, also with "Apenas Favoritos" on: the grid filters them in
+  // the browser. Only the fields the cards show, so the numeric id never
+  // reaches the browser.
+  const projects = await prisma.project.findMany({
     select: {
       public_id: true,
       name: true,
@@ -31,16 +26,8 @@ async function ProjectCards({ searchParams }: ProjectCardsProps) {
     },
     orderBy: PROJECT_SORTS[sort].orderBy,
   });
-  const [total, projects] = await Promise.all([totalQuery, projectsQuery]);
 
-  return (
-    <ProjectGrid
-      projects={projects}
-      total={total}
-      sort={sort}
-      favoritesOnly={favoritesOnly}
-    />
-  );
+  return <ProjectGrid projects={projects} sort={sort} />;
 }
 
 export default function Home({ searchParams }: PageProps<"/">) {

@@ -37,22 +37,31 @@ export function ProjectToolbar({
   const searchParams = useSearchParams();
   const favoritesId = useId();
 
-  // Changes one query param and keeps the others (sort and filter live
-  // together in the URL). null removes the param.
-  function updateSearchParam(key: string, value: string | null) {
+  // URL with one query param changed and the others kept (sort and filter
+  // live together in the URL). null removes the param.
+  function urlWithParam(key: string, value: string | null): string {
     const params = new URLSearchParams(searchParams.toString());
     if (value === null) params.delete(key);
     else params.set(key, value);
     const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    return query ? `${pathname}?${query}` : pathname;
   }
 
+  // The sort runs in the query, so it goes through the server.
   function handleSortChange(value: string) {
-    if (isProjectSort(value)) updateSearchParam("ordem", value);
+    if (isProjectSort(value)) {
+      router.push(urlWithParam("ordem", value), { scroll: false });
+    }
   }
 
+  // The grid filters favorites in the browser: changing the URL with the
+  // history API updates useSearchParams without a server round trip.
   function handleFavoritesChange(checked: boolean) {
-    updateSearchParam(FAVORITES_PARAM, checked ? "1" : null);
+    window.history.pushState(
+      null,
+      "",
+      urlWithParam(FAVORITES_PARAM, checked ? "1" : null),
+    );
   }
 
   return (
