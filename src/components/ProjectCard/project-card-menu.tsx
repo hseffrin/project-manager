@@ -4,9 +4,9 @@ import { useState, useTransition } from "react";
 import { deleteProject } from "@/actions/projects";
 import { ModalContent, ModalRoot } from "@/components/Modal/modal";
 import { MoreButton } from "@/components/MoreButton/more-button";
+import deleteIcon from "@/components/icons/delete.svg";
 import type { Project } from "@/db/generated/prisma/browser";
 import deleteWhiteIcon from "./icons/delete-white.svg";
-import deleteIcon from "./icons/delete.svg";
 
 type ProjectCardMenuProps = {
   project: Pick<Project, "id" | "name">;
