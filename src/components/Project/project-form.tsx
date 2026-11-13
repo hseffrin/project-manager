@@ -285,11 +285,9 @@ export function ProjectForm({ project }: ProjectFormProps) {
           label="Capa do projeto"
           accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"] }}
           hint="Escolha uma imagem .jpg ou .png no seu dispositivo"
-          required
-          requiredMessage="Envie uma imagem de capa"
           error={errors.cover?.[0]}
           onReadyChange={setCoverReady}
-          defaultUrl={project?.cover_url}
+          defaultUrl={project?.cover_url ?? undefined}
         />
 
         {state.message && (

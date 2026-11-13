@@ -27,9 +27,8 @@ const projectSchema = z
     customer: requiredText("Por favor, digite ao menos uma palavra"),
     startDate: z.iso.date("Selecione uma data válida"),
     endDate: z.iso.date("Selecione uma data válida"),
-    cover: z
-      .string("Envie uma imagem de capa")
-      .refine(isOwnUploadUrl, INVALID_COVER),
+    // Optional: the form only sends it when a cover was uploaded.
+    cover: z.string().refine(isOwnUploadUrl, INVALID_COVER).nullable(),
   })
   // ISO dates (YYYY-MM-DD) compare correctly as strings.
   .refine((project) => project.endDate >= project.startDate, {
@@ -50,7 +49,7 @@ type ProjectData = {
   customer: string;
   date_start: Date;
   date_end: Date;
-  cover_url: string;
+  cover_url: string | null;
 };
 
 // Validates the project form fields and maps them to the database columns.
@@ -120,10 +119,12 @@ const createProject = async (
   const parsed = parseProjectForm(formData);
   if (!parsed.success) return parsed.state;
 
-  // A new project's cover must be a fresh upload: the project's folder only
-  // exists once the database creates its public id.
+  // A new project's cover, if any, must be a fresh upload: the project's
+  // folder only exists once the database creates its public id.
   const cover = parsed.data.cover_url;
-  if (!isTempUploadUrl(cover)) return { errors: { cover: [INVALID_COVER] } };
+  if (cover && !isTempUploadUrl(cover)) {
+    return { errors: { cover: [INVALID_COVER] } };
+  }
 
   let publicId: string;
   try {
@@ -136,7 +137,7 @@ const createProject = async (
     return { message: "Não foi possível salvar o projeto. Tente novamente." };
   }
 
-  await moveCoverToProjectFolder(publicId, cover);
+  if (cover) await moveCoverToProjectFolder(publicId, cover);
 
   // Outside the try: redirect() works by throwing.
   redirect("/");
@@ -156,7 +157,7 @@ const updateProject = async (
   if (!parsed.success) return parsed.state;
   const cover = parsed.data.cover_url;
 
-  let previousCover: string;
+  let previousCover: string | null;
   try {
     const project = await prisma.project.findUnique({
       where: { public_id: id.data },
@@ -165,8 +166,8 @@ const updateProject = async (
     if (!project) return { message: "Projeto não encontrado." };
     previousCover = project.cover_url;
 
-    // Either the cover the project already has, or a fresh upload.
-    if (cover !== previousCover && !isTempUploadUrl(cover)) {
+    // The cover the project already has, a fresh upload, or none.
+    if (cover && cover !== previousCover && !isTempUploadUrl(cover)) {
       return { errors: { cover: [INVALID_COVER] } };
     }
 
@@ -179,11 +180,18 @@ const updateProject = async (
     return { message: "Não foi possível salvar o projeto. Tente novamente." };
   }
 
-  if (cover !== previousCover) await moveCoverToProjectFolder(id.data, cover);
+  if (cover && cover !== previousCover) {
+    await moveCoverToProjectFolder(id.data, cover);
+  }
 
   // A new cover replaced the old one, which no project uses anymore. As in
   // deleteProject, a failure only leaves an orphan file, so just log it.
-  if (cover !== previousCover && isOwnUploadUrl(previousCover)) {
+  // Replaced or removed: the old cover isn't used by any project anymore.
+  if (
+    previousCover &&
+    cover !== previousCover &&
+    isOwnUploadUrl(previousCover)
+  ) {
     try {
       await del(previousCover);
     } catch (error) {
@@ -204,7 +212,7 @@ const deleteProject = async (publicId: string): Promise<DeleteProjectState> => {
   const parsed = z.uuid().safeParse(publicId);
   if (!parsed.success) return { message: "Projeto inválido." };
 
-  let coverUrl: string;
+  let coverUrl: string | null;
   try {
     const project = await prisma.project.delete({
       where: { public_id: parsed.data },
@@ -218,7 +226,7 @@ const deleteProject = async (publicId: string): Promise<DeleteProjectState> => {
 
   // The project is already gone, so a failure here only leaves an orphan file
   // in the Blob store; log it instead of reporting an error to the user.
-  if (isOwnUploadUrl(coverUrl)) {
+  if (coverUrl && isOwnUploadUrl(coverUrl)) {
     try {
       await del(coverUrl);
     } catch (error) {
