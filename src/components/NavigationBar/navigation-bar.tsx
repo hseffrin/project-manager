@@ -32,11 +32,13 @@ export function NavigationBar({ title }: NavigationBarProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    // Spacing and the 5px inset measured from the designs, where the bar sits
+    // slightly in from the page margin.
+    <div className="flex flex-col gap-2.5 pl-1.25">
       <button
         type="button"
         onClick={handleBack}
-        className="flex cursor-pointer items-center gap-2 self-start text-sm text-brand-label hover:underline focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none"
+        className="flex cursor-pointer items-center gap-2 self-start text-base text-brand-label hover:underline focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none"
       >
         <Image src={backIcon} alt="" />
         Voltar

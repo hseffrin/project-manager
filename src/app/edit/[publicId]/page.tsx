@@ -34,7 +34,7 @@ async function EditProjectForm({ params }: EditProjectFormProps) {
 
 export default function EditProject({ params }: PageProps<"/edit/[publicId]">) {
   return (
-    <main className="flex flex-1 flex-col gap-8 px-8 py-16">
+    <main className="flex flex-1 flex-col gap-8 px-10 pt-17 pb-16">
       <NavigationBar title="Editar projeto" />
       <Suspense fallback={<p>Carregando projeto...</p>}>
         <EditProjectForm params={params} />
