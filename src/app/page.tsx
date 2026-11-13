@@ -11,7 +11,16 @@ type ProjectCardsProps = {
 // shows up right away.
 async function ProjectCards({ searchParams }: ProjectCardsProps) {
   const sort = parseProjectSort((await searchParams).ordem);
+  // Only the fields the cards show: the numeric id never reaches the browser.
   const projects = await prisma.project.findMany({
+    select: {
+      public_id: true,
+      name: true,
+      customer: true,
+      date_start: true,
+      date_end: true,
+      cover_url: true,
+    },
     orderBy: PROJECT_SORTS[sort].orderBy,
   });
 

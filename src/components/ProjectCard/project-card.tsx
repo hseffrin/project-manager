@@ -12,12 +12,13 @@ import { ProjectCardMenu } from "./project-card-menu";
 type ProjectCardProps = {
   project: Pick<
     Project,
-    "id" | "name" | "customer" | "date_start" | "date_end" | "cover_url"
+    "public_id" | "name" | "customer" | "date_start" | "date_end" | "cover_url"
   >;
 };
 
 export function ProjectCard({ project }: ProjectCardProps) {
-  const { id, name, customer, date_start, date_end, cover_url } = project;
+  const { public_id, name, customer, date_start, date_end, cover_url } =
+    project;
 
   return (
     <article className="overflow-hidden rounded-xl border border-black/10 bg-white">
@@ -33,7 +34,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
         <div className="absolute right-3 bottom-3 flex items-center gap-3">
           <FavoriteButton />
-          <ProjectCardMenu project={{ id, name }} />
+          <ProjectCardMenu project={{ public_id, name }} />
         </div>
       </div>
 

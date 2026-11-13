@@ -78,15 +78,15 @@ type DeleteProjectState = {
   message?: string;
 };
 
-const deleteProject = async (id: number): Promise<DeleteProjectState> => {
+const deleteProject = async (publicId: string): Promise<DeleteProjectState> => {
   // TODO: check the logged-in user here once there is authentication.
-  const parsed = z.number().int().positive().safeParse(id);
+  const parsed = z.uuid().safeParse(publicId);
   if (!parsed.success) return { message: "Projeto inválido." };
 
   let coverUrl: string;
   try {
     const project = await prisma.project.delete({
-      where: { id: parsed.data },
+      where: { public_id: parsed.data },
       select: { cover_url: true },
     });
     coverUrl = project.cover_url;

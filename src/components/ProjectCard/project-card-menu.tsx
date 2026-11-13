@@ -9,13 +9,13 @@ import type { Project } from "@/db/generated/prisma/browser";
 import deleteWhiteIcon from "./icons/delete-white.svg";
 
 type ProjectCardMenuProps = {
-  project: Pick<Project, "id" | "name">;
+  project: Pick<Project, "public_id" | "name">;
 };
 
 // The "…" menu of a project card. "Remover" asks for confirmation in a modal
 // before deleting the project.
 export function ProjectCardMenu({ project }: ProjectCardMenuProps) {
-  const { id, name } = project;
+  const { public_id, name } = project;
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -24,7 +24,7 @@ export function ProjectCardMenu({ project }: ProjectCardMenuProps) {
   // is enough for now.
   function handleRemove() {
     startTransition(async () => {
-      const { message } = await deleteProject(id);
+      const { message } = await deleteProject(public_id);
       if (message) window.alert(message);
     });
   }

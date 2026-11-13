@@ -8,7 +8,7 @@ type ProjectGridProps = {
   // Already sorted by the query; the grid keeps the order it receives.
   projects: Pick<
     Project,
-    "id" | "name" | "customer" | "date_start" | "date_end" | "cover_url"
+    "public_id" | "name" | "customer" | "date_start" | "date_end" | "cover_url"
   >[];
   // Current sort, shown in the toolbar select.
   sort: ProjectSort;
@@ -29,7 +29,7 @@ export function ProjectGrid({ projects, sort }: ProjectGridProps) {
       />
       <div className="grid w-full gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {projects.map((project) => (
-          <ProjectCard key={project.id} project={project} />
+          <ProjectCard key={project.public_id} project={project} />
         ))}
       </div>
     </div>
