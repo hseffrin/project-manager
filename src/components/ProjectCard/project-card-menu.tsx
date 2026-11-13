@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteProject } from "@/actions/projects";
 import { ModalContent, ModalRoot } from "@/components/Modal/modal";
@@ -7,15 +8,17 @@ import { MoreButton } from "@/components/MoreButton/more-button";
 import deleteIcon from "@/components/icons/delete.svg";
 import type { Project } from "@/db/generated/prisma/browser";
 import deleteWhiteIcon from "./icons/delete-white.svg";
+import editIcon from "./icons/edit.svg";
 
 type ProjectCardMenuProps = {
   project: Pick<Project, "public_id" | "name">;
 };
 
-// The "…" menu of a project card. "Remover" asks for confirmation in a modal
-// before deleting the project.
+// The "…" menu of a project card. "Editar" opens the edit page; "Remover" asks
+// for confirmation in a modal before deleting the project.
 export function ProjectCardMenu({ project }: ProjectCardMenuProps) {
   const { public_id, name } = project;
+  const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -33,6 +36,11 @@ export function ProjectCardMenu({ project }: ProjectCardMenuProps) {
     <>
       <MoreButton
         options={{
+          edit: {
+            icon: editIcon,
+            label: "Editar",
+            action: () => router.push(`/edit/${public_id}`),
+          },
           remove: {
             icon: deleteIcon,
             label: "Remover",
