@@ -4,12 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { ProjectCard } from "@/components/ProjectCard/project-card";
 import type { Project } from "@/db/generated/prisma/browser";
 import { DEFAULT_PROJECT_SORT, sortProjects } from "@/utils/project-sort";
-import {
-  isSearchable,
-  MIN_SEARCH_LENGTH,
-  matchesProject,
-  SEARCH_PARAM,
-} from "@/utils/search";
+import { isSearchable, matchesProject, SEARCH_PARAM } from "@/utils/search";
 
 type SearchResultsProps = {
   // All projects: the search filters them in the browser, so each new letter
@@ -28,18 +23,14 @@ type SearchResultsProps = {
 
 export function SearchResults({ projects }: SearchResultsProps) {
   const query = useSearchParams().get(SEARCH_PARAM) ?? "";
-
-  if (!isSearchable(query)) {
-    return (
-      <Message
-        title="Digite o nome do projeto"
-        text={`A busca começa a partir de ${MIN_SEARCH_LENGTH} letras.`}
-      />
-    );
-  }
+  // With fewer than 3 letters (e.g. after erasing the text) every project
+  // shows, without highlight.
+  const searching = isSearchable(query);
 
   const results = sortProjects(
-    projects.filter((project) => matchesProject(project, query)),
+    searching
+      ? projects.filter((project) => matchesProject(project, query))
+      : projects,
     DEFAULT_PROJECT_SORT,
   );
 
@@ -58,7 +49,7 @@ export function SearchResults({ projects }: SearchResultsProps) {
         <ProjectCard
           key={project.public_id}
           project={project}
-          highlight={query}
+          highlight={searching ? query : undefined}
         />
       ))}
     </div>

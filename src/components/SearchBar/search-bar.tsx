@@ -50,9 +50,10 @@ export function SearchBar({ onClose }: SearchBarProps) {
   // Both renders still match: the list only shows once the field has focus.
   const [history, setHistory] = useState(readSearchHistory);
 
-  // Searches after a pause in typing.
+  // Searches after a pause in typing. On /search, erasing the text also
+  // updates the URL, so the page goes back to showing every project.
   useEffect(() => {
-    if (!isSearchable(query)) return;
+    if (!isSearchable(query) && !onSearchPage) return;
     const timeout = setTimeout(() => goToResults(query), SEARCH_DELAY_MS);
     return () => clearTimeout(timeout);
     // goToResults only reads the current route, which this effect doesn't
@@ -64,7 +65,9 @@ export function SearchBar({ onClose }: SearchBarProps) {
   // From another page it navigates, so "Voltar" can return to it. The bar
   // stays mounted through the navigation, so the field keeps the focus.
   function goToResults(term: string) {
-    const url = `${SEARCH_PATH}?${SEARCH_PARAM}=${encodeURIComponent(term.trim())}`;
+    const url = isSearchable(term)
+      ? `${SEARCH_PATH}?${SEARCH_PARAM}=${encodeURIComponent(term.trim())}`
+      : SEARCH_PATH;
     if (onSearchPage) window.history.replaceState(null, "", url);
     else router.push(url);
   }
