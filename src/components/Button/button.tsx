@@ -24,9 +24,17 @@ const variantClasses: Record<ButtonVariant, string> = {
     "border-brand-button-secondary-label bg-brand-button-secondary text-brand-button-secondary-label disabled:opacity-50",
 };
 
+// Measured from the designs: sm is the toolbar's "Novo projeto" and the
+// dropzone's "Selecionar" (40px tall, at least 144px wide).
 const sizeClasses: Record<ButtonSize, string> = {
-  md: "h-12",
-  sm: "h-10",
+  md: "h-12 gap-2 px-5",
+  sm: "h-10 gap-2.5 px-6",
+};
+
+// Minimum width from md screens up, unless the button fills its parent.
+const minWidthClasses: Record<ButtonSize, string> = {
+  md: "md:min-w-39.5",
+  sm: "md:min-w-36",
 };
 
 export function Button({
@@ -42,7 +50,7 @@ export function Button({
     <button
       type="button"
       {...buttonProps}
-      className={`flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border px-5 text-base font-medium whitespace-nowrap transition focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none enabled:hover:opacity-90 disabled:cursor-not-allowed ${fullWidth ? "" : "md:w-auto md:min-w-39.5"} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
+      className={`flex w-full cursor-pointer items-center justify-center rounded-full border text-base font-medium whitespace-nowrap transition focus-visible:ring-2 focus-visible:ring-brand-button-primary/50 focus-visible:outline-none enabled:hover:opacity-90 disabled:cursor-not-allowed ${fullWidth ? "" : `md:w-auto ${minWidthClasses[size]}`} ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
     >
       {icon}
       {label}

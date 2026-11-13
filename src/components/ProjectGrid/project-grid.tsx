@@ -44,7 +44,7 @@ export function ProjectGrid({ projects }: ProjectGridProps) {
     : sorted;
 
   return (
-    <div className="flex flex-1 flex-col gap-8">
+    <div className="flex flex-1 flex-col gap-5.5">
       <ProjectToolbar
         title="Projetos"
         // The total, even when the filter hides some (as in the designs).
