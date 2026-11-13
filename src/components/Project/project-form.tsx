@@ -99,6 +99,9 @@ function DateField({
               required
               defaultValue={defaultValue}
               min={min}
+              // Browsers accept years up to 275760 (typing "202026" is
+              // easy); the server only takes 4-digit years.
+              max="9999-12-31"
               onBlur={validateOnBlur}
               onChange={(event) => onValueChange?.(event.target.value)}
               className="h-full w-full flex-none bg-transparent text-brand-fg outline-none group-data-invalid:text-brand-error supports-[-moz-appearance:none]:w-[calc(100%+2rem)] [&::-webkit-calendar-picker-indicator]:hidden"
@@ -117,6 +120,9 @@ function DateField({
         Selecione uma data válida
       </Form.Message>
       <Form.Message className={messageCls} match="badInput">
+        Selecione uma data válida
+      </Form.Message>
+      <Form.Message className={messageCls} match="rangeOverflow">
         Selecione uma data válida
       </Form.Message>
       <Form.Message className={messageCls} match="rangeUnderflow">
@@ -186,6 +192,12 @@ export function ProjectForm({ project }: ProjectFormProps) {
       ref={formRef}
       onSubmit={handleSubmit}
       onInput={updateFieldsValid}
+      // Radix moves the focus to the first invalid field on every "invalid"
+      // event, and validateOnBlur fires one when leaving a field: the focus
+      // jumped back and the user couldn't leave an invalid field.
+      // preventDefault skips that handler; the field still shows its error.
+      // The save button stays disabled while anything is invalid.
+      onInvalid={(event) => event.preventDefault()}
       className="flex w-full justify-center rounded border border-brand-border px-6 py-12"
     >
       <div className="flex w-full max-w-176 flex-col gap-8">
@@ -273,11 +285,9 @@ export function ProjectForm({ project }: ProjectFormProps) {
           label="Capa do projeto"
           accept={{ "image/jpeg": [".jpg", ".jpeg"], "image/png": [".png"] }}
           hint="Escolha uma imagem .jpg ou .png no seu dispositivo"
-          required
-          requiredMessage="Envie uma imagem de capa"
           error={errors.cover?.[0]}
           onReadyChange={setCoverReady}
-          defaultUrl={project?.cover_url}
+          defaultUrl={project?.cover_url ?? undefined}
         />
 
         {state.message && (

@@ -52,7 +52,10 @@ type FileDropzoneProps = {
   requiredMessage?: string;
   /** Error returned by the server for this field. */
   error?: string;
-  /** Called with true when a file is uploaded and nothing is uploading. */
+  /**
+   * Called with true when the form can be submitted: nothing is uploading
+   * and, if required, a file was uploaded.
+   */
   onReadyChange?: (ready: boolean) => void;
   /** URL of a file already saved, shown as the initial preview (edit form). */
   defaultUrl?: string;
@@ -113,9 +116,10 @@ export function FileDropzone({
     inputRef.current?.setCustomValidity(validityMessage);
   }, [inputRef, validityMessage]);
 
+  const canSubmit = !uploading && (!required || ready);
   useEffect(() => {
-    onReadyChange?.(ready);
-  }, [onReadyChange, ready]);
+    onReadyChange?.(canSubmit);
+  }, [onReadyChange, canSubmit]);
 
   async function startUpload(file: File) {
     const controller = new AbortController();

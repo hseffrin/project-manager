@@ -1,11 +1,18 @@
 "use server";
 
-import { del } from "@vercel/blob";
+import { copy, del } from "@vercel/blob";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/db/client";
-import { isOwnUploadUrl } from "@/utils/upload/upload-url";
+import {
+  blobFileName,
+  isOwnUploadUrl,
+  isTempUploadUrl,
+} from "@/utils/upload/upload-url";
+import { projectCoverPath } from "@/utils/upload/uploads";
+
+const INVALID_COVER = "Capa inválida, envie a imagem novamente";
 
 const requiredText = (message: string) =>
   z.string(message).trim().min(1, message);
@@ -20,9 +27,8 @@ const projectSchema = z
     customer: requiredText("Por favor, digite ao menos uma palavra"),
     startDate: z.iso.date("Selecione uma data válida"),
     endDate: z.iso.date("Selecione uma data válida"),
-    cover: z
-      .string("Envie uma imagem de capa")
-      .refine(isOwnUploadUrl, "Capa inválida, envie a imagem novamente"),
+    // Optional: the form only sends it when a cover was uploaded.
+    cover: z.string().refine(isOwnUploadUrl, INVALID_COVER).nullable(),
   })
   // ISO dates (YYYY-MM-DD) compare correctly as strings.
   .refine((project) => project.endDate >= project.startDate, {
@@ -43,7 +49,7 @@ type ProjectData = {
   customer: string;
   date_start: Date;
   date_end: Date;
-  cover_url: string;
+  cover_url: string | null;
 };
 
 // Validates the project form fields and maps them to the database columns.
@@ -80,6 +86,31 @@ const parseProjectForm = (
   };
 };
 
+// The form uploads covers to a temporary folder; this moves one into the
+// project's folder (projects/<public_id>/): copy, point the project at the
+// copy, then delete the temporary file. Each step only runs if the previous
+// one worked, so the project never points at a missing file. A failure keeps
+// the temporary cover, which still works, and is only logged.
+const moveCoverToProjectFolder = async (
+  publicId: string,
+  tempUrl: string,
+): Promise<void> => {
+  try {
+    const { url } = await copy(
+      tempUrl,
+      projectCoverPath(publicId, blobFileName(tempUrl)),
+      { access: "public" },
+    );
+    await prisma.project.update({
+      where: { public_id: publicId },
+      data: { cover_url: url },
+    });
+    await del(tempUrl);
+  } catch (error) {
+    console.error("Failed to move project cover to its folder", error);
+  }
+};
+
 const createProject = async (
   _prevState: ProjectFormState,
   formData: FormData,
@@ -88,12 +119,25 @@ const createProject = async (
   const parsed = parseProjectForm(formData);
   if (!parsed.success) return parsed.state;
 
+  // A new project's cover, if any, must be a fresh upload: the project's
+  // folder only exists once the database creates its public id.
+  const cover = parsed.data.cover_url;
+  if (cover && !isTempUploadUrl(cover)) {
+    return { errors: { cover: [INVALID_COVER] } };
+  }
+
+  let publicId: string;
   try {
-    await prisma.project.create({ data: parsed.data });
+    ({ public_id: publicId } = await prisma.project.create({
+      data: parsed.data,
+      select: { public_id: true },
+    }));
   } catch (error) {
     console.error("Failed to create project", error);
     return { message: "Não foi possível salvar o projeto. Tente novamente." };
   }
+
+  if (cover) await moveCoverToProjectFolder(publicId, cover);
 
   // Outside the try: redirect() works by throwing.
   redirect("/");
@@ -111,8 +155,9 @@ const updateProject = async (
 
   const parsed = parseProjectForm(formData);
   if (!parsed.success) return parsed.state;
+  const cover = parsed.data.cover_url;
 
-  let previousCover: string;
+  let previousCover: string | null;
   try {
     const project = await prisma.project.findUnique({
       where: { public_id: id.data },
@@ -120,6 +165,11 @@ const updateProject = async (
     });
     if (!project) return { message: "Projeto não encontrado." };
     previousCover = project.cover_url;
+
+    // The cover the project already has, a fresh upload, or none.
+    if (cover && cover !== previousCover && !isTempUploadUrl(cover)) {
+      return { errors: { cover: [INVALID_COVER] } };
+    }
 
     await prisma.project.update({
       where: { public_id: id.data },
@@ -130,10 +180,16 @@ const updateProject = async (
     return { message: "Não foi possível salvar o projeto. Tente novamente." };
   }
 
+  if (cover && cover !== previousCover) {
+    await moveCoverToProjectFolder(id.data, cover);
+  }
+
   // A new cover replaced the old one, which no project uses anymore. As in
   // deleteProject, a failure only leaves an orphan file, so just log it.
+  // Replaced or removed: the old cover isn't used by any project anymore.
   if (
-    previousCover !== parsed.data.cover_url &&
+    previousCover &&
+    cover !== previousCover &&
     isOwnUploadUrl(previousCover)
   ) {
     try {
@@ -156,7 +212,7 @@ const deleteProject = async (publicId: string): Promise<DeleteProjectState> => {
   const parsed = z.uuid().safeParse(publicId);
   if (!parsed.success) return { message: "Projeto inválido." };
 
-  let coverUrl: string;
+  let coverUrl: string | null;
   try {
     const project = await prisma.project.delete({
       where: { public_id: parsed.data },
@@ -170,7 +226,7 @@ const deleteProject = async (publicId: string): Promise<DeleteProjectState> => {
 
   // The project is already gone, so a failure here only leaves an orphan file
   // in the Blob store; log it instead of reporting an error to the user.
-  if (isOwnUploadUrl(coverUrl)) {
+  if (coverUrl && isOwnUploadUrl(coverUrl)) {
     try {
       await del(coverUrl);
     } catch (error) {
