@@ -184,5 +184,36 @@ const deleteProject = async (publicId: string): Promise<DeleteProjectState> => {
   return {};
 };
 
-export { createProject, deleteProject, updateProject };
-export type { DeleteProjectState, ProjectFormState };
+type SetProjectFavoriteState = {
+  message?: string;
+};
+
+const setProjectFavorite = async (
+  publicId: string,
+  favorite: boolean,
+): Promise<SetProjectFavoriteState> => {
+  // TODO: check the logged-in user here once there is authentication.
+  const parsed = z
+    .object({ publicId: z.uuid(), favorite: z.boolean() })
+    .safeParse({ publicId, favorite });
+  if (!parsed.success) return { message: "Projeto inválido." };
+
+  try {
+    await prisma.project.update({
+      where: { public_id: parsed.data.publicId },
+      data: { favorite: parsed.data.favorite },
+    });
+  } catch (error) {
+    console.error("Failed to update project favorite", error);
+    return {
+      message: "Não foi possível atualizar o favorito. Tente novamente.",
+    };
+  }
+
+  // With "Apenas Favoritos" on, unfavoriting must drop the card.
+  refresh();
+  return {};
+};
+
+export { createProject, deleteProject, setProjectFavorite, updateProject };
+export type { DeleteProjectState, ProjectFormState, SetProjectFavoriteState };
