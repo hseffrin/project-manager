@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { z } from "zod";
 import { NavigationBar } from "@/components/NavigationBar/navigation-bar";
 import { ProjectForm } from "@/components/Project/project-form";
+import { ProjectFormSkeleton } from "@/components/Project/project-form-skeleton";
 import { prisma } from "@/db/client";
 
 type EditProjectFormProps = {
@@ -36,7 +37,7 @@ export default function EditProject({ params }: PageProps<"/edit/[publicId]">) {
   return (
     <main className="flex flex-1 flex-col gap-8 px-8 py-16">
       <NavigationBar title="Editar projeto" />
-      <Suspense fallback={<p>Carregando projeto...</p>}>
+      <Suspense fallback={<ProjectFormSkeleton />}>
         <EditProjectForm params={params} />
       </Suspense>
     </main>
