@@ -1,5 +1,8 @@
 model Project {
   id         Int      @id @default(autoincrement())
+  // Sent to the browser (URLs, actions) instead of the numeric id. The database
+  // generates it, so existing rows get one too.
+  public_id  String   @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name       String
   customer   String
   date_start DateTime

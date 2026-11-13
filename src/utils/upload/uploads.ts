@@ -7,7 +7,7 @@
 const UPLOAD_PREFIX =
   process.env.NODE_ENV === "production" ? "projects/" : "test/projects/";
 const MAX_UPLOAD_BYTES = 1024 * 1024; // 1 MB
-// Uploads are project covers, so only images are accepted.
-const ALLOWED_CONTENT_TYPES = ["image/*"];
+// Uploads are project covers: only .jpg and .png images, as the form says.
+const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png"];
 
 export { ALLOWED_CONTENT_TYPES, MAX_UPLOAD_BYTES, UPLOAD_PREFIX };

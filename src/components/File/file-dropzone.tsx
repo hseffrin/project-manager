@@ -1,13 +1,19 @@
 "use client";
 
+import Image from "next/image";
 import { Progress } from "radix-ui";
 import { useEffect, useId, useState } from "react";
 import { ErrorCode, useDropzone } from "react-dropzone";
 
 import type { Accept, FileError, FileRejection } from "react-dropzone";
+import { deleteUnusedUpload } from "@/actions/uploads";
+import { Button } from "@/components/Button/button";
+import { IconButton } from "@/components/IconButton/icon-button";
+import deleteIcon from "@/components/icons/delete.svg";
 import { uploadFile } from "@/utils/upload/upload-client";
 import { MAX_UPLOAD_BYTES } from "@/utils/upload/uploads";
 import { normalizeFileSize } from "@/utils/string-format";
+import uploadIcon from "./icons/upload.svg";
 
 function errorMessage(error: FileError) {
   switch (error.code) {
@@ -22,66 +28,84 @@ function errorMessage(error: FileError) {
   }
 }
 
-type UploadItem = {
-  id: string;
-  file: File;
-  status: "uploading" | "done" | "error";
-  progress: number;
-  url?: string;
-  error?: string;
-  controller: AbortController;
-};
+type Upload =
+  | {
+      status: "uploading";
+      fileName: string;
+      progress: number;
+      controller: AbortController;
+    }
+  // uploaded: sent in this visit. False for the initial file (defaultUrl),
+  // which belongs to a saved project and must not be deleted here.
+  | { status: "done"; url: string; uploaded: boolean };
 
 type FileDropzoneProps = {
-  /** Form field name that receives the uploaded file URLs (one entry per file). */
+  /** Form field name that receives the uploaded file URL. */
   name?: string;
   label?: string;
-  /** MIME types → extensions, e.g. `{ "image/*": [], "application/pdf": [".pdf"] }`. */
+  /** MIME types → extensions, e.g. `{ "image/png": [".png"] }`. */
   accept?: Accept;
+  /** Text inside the empty dropzone. */
   hint?: string;
-  /** Single-file mode: a new file replaces the current one. */
-  multiple?: boolean;
-  /** Blocks the form submit until at least one file finished uploading. */
+  /** Blocks the form submit until a file finished uploading. */
   required?: boolean;
   requiredMessage?: string;
   /** Error returned by the server for this field. */
   error?: string;
+  /** Called with true when a file is uploaded and nothing is uploading. */
+  onReadyChange?: (ready: boolean) => void;
+  /** URL of a file already saved, shown as the initial preview (edit form). */
+  defaultUrl?: string;
 };
 
+// Single image picker: uploads the file straight to Blob and shows a preview.
+// The form only receives the uploaded URL, in a hidden input.
 export function FileDropzone({
-  name = "files",
-  label = "Arquivos",
+  name = "file",
+  label = "Arquivo",
   accept,
-  hint = `Qualquer tipo de arquivo, até ${normalizeFileSize(MAX_UPLOAD_BYTES)}`,
-  multiple = true,
+  hint = `Escolha um arquivo de até ${normalizeFileSize(MAX_UPLOAD_BYTES)}`,
   required = false,
   requiredMessage = "Envie um arquivo",
   error,
+  onReadyChange,
+  defaultUrl,
 }: FileDropzoneProps) {
   const inputId = useId();
-  const [items, setItems] = useState<UploadItem[]>([]);
+  const [upload, setUpload] = useState<Upload | null>(
+    defaultUrl ? { status: "done", url: defaultUrl, uploaded: false } : null,
+  );
+  const [uploadError, setUploadError] = useState<string>();
   const [blockedSubmit, setBlockedSubmit] = useState(false);
 
-  const { getRootProps, getInputProps, inputRef, isDragActive, isDragReject } =
-    useDropzone({
-      accept,
-      maxSize: MAX_UPLOAD_BYTES,
-      multiple,
-      maxFiles: multiple ? 0 : 1,
-      onDrop: handleDrop,
-    });
+  const {
+    getRootProps,
+    getInputProps,
+    inputRef,
+    open,
+    isDragActive,
+    isDragReject,
+  } = useDropzone({
+    accept,
+    maxSize: MAX_UPLOAD_BYTES,
+    multiple: false,
+    // Only the "Selecionar" button opens the file dialog; the whole box
+    // still accepts drops.
+    noClick: true,
+    onDrop: handleDrop,
+  });
 
-  const uploading = items.some((item) => item.status === "uploading");
-  const hasFile = items.some((item) => item.status === "done");
+  const uploading = upload?.status === "uploading";
+  const ready = upload?.status === "done";
   const validityMessage = uploading
-    ? "Aguarde o envio dos arquivos terminar"
-    : required && !hasFile
+    ? "Aguarde o envio do arquivo terminar"
+    : required && !ready
       ? requiredMessage
       : "";
-  const shownError = (blockedSubmit && validityMessage) || error;
+  const shownError = (blockedSubmit && validityMessage) || uploadError || error;
 
-  // While files are still uploading (or a required file is missing), mark
-  // the picker as invalid so the browser refuses to submit the form (no Radix
+  // While the file is uploading (or a required file is missing), mark the
+  // picker as invalid so the browser refuses to submit the form (no Radix
   // Form.Control here because it resets custom validity on its own).
   // react-dropzone keeps its input focusable precisely so form validation
   // still works on it.
@@ -89,216 +113,183 @@ export function FileDropzone({
     inputRef.current?.setCustomValidity(validityMessage);
   }, [inputRef, validityMessage]);
 
-  function updateItem(id: string, patch: Partial<UploadItem>) {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...patch } : item)),
-    );
-  }
-
-  function newItem(file: File, patch?: Partial<UploadItem>): UploadItem {
-    return {
-      id: crypto.randomUUID(),
-      file,
-      status: "uploading",
-      progress: 0,
-      controller: new AbortController(),
-      ...patch,
-    };
-  }
+  useEffect(() => {
+    onReadyChange?.(ready);
+  }, [onReadyChange, ready]);
 
   async function startUpload(file: File) {
-    const item = newItem(file);
-    setItems((prev) => [...prev, item]);
+    const controller = new AbortController();
+    setUpload({
+      status: "uploading",
+      fileName: file.name,
+      progress: 0,
+      controller,
+    });
 
     try {
       const { url } = await uploadFile(file, {
-        signal: item.controller.signal,
-        onProgress: (progress) => updateItem(item.id, { progress }),
+        signal: controller.signal,
+        onProgress: (progress) =>
+          setUpload((prev) =>
+            prev?.status === "uploading" ? { ...prev, progress } : prev,
+          ),
       });
-      updateItem(item.id, { status: "done", progress: 100, url });
-    } catch (error) {
-      if (item.controller.signal.aborted) return; // removed by the user
-      updateItem(item.id, {
-        status: "error",
-        error: error instanceof Error ? error.message : "Falha no envio",
-      });
+      setUpload({ status: "done", url, uploaded: true });
+    } catch (uploadFailure) {
+      if (controller.signal.aborted) return; // replaced or removed
+      setUpload(null);
+      setUploadError(
+        uploadFailure instanceof Error
+          ? uploadFailure.message
+          : "Falha no envio",
+      );
     }
   }
 
   function handleDrop(accepted: File[], rejections: FileRejection[]) {
-    // Clear the native input: files go to Blob, not with the form submit.
-    // This also lets the user pick the same file again.
+    // Clear the native input: the file goes to Blob, not with the form
+    // submit. This also lets the user pick the same file again.
     if (inputRef.current) inputRef.current.value = "";
     setBlockedSubmit(false);
+    setUploadError(undefined);
 
-    // Single-file mode: the new file replaces the current one.
-    if (!multiple) {
-      setItems((prev) => {
-        prev.forEach((item) => item.controller.abort());
-        return [];
-      });
-    }
+    // A new file replaces the current one.
+    discardCurrent();
 
-    // Rejected files (too large, wrong type) stay in the list as errors.
     if (rejections.length > 0) {
-      setItems((prev) => [
-        ...prev,
-        ...rejections.map(({ file, errors }) =>
-          newItem(file, {
-            status: "error",
-            error: errors.map(errorMessage).join(" · "),
-          }),
-        ),
-      ]);
+      setUpload(null);
+      setUploadError(rejections[0].errors.map(errorMessage).join(" · "));
+      return;
     }
-    accepted.forEach(startUpload);
+    if (accepted[0]) startUpload(accepted[0]);
   }
 
-  function removeItem(id: string) {
-    setItems((prev) => {
-      prev.find((item) => item.id === id)?.controller.abort();
-      return prev.filter((item) => item.id !== id);
-    });
+  // Stops the current upload, or deletes the file sent in this visit, since
+  // nothing will use it. The initial file stays: it belongs to the project
+  // until the form is saved with another one.
+  function discardCurrent() {
+    if (upload?.status === "uploading") upload.controller.abort();
+    if (upload?.status === "done" && upload.uploaded) {
+      void deleteUnusedUpload(upload.url);
+    }
+  }
+
+  function removeFile() {
+    discardCurrent();
+    setUpload(null);
   }
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-baseline justify-between">
-        <label htmlFor={inputId} className="text-sm font-medium">
-          {label}
-        </label>
-        {shownError && (
-          <span className="text-xs text-red-600" role="alert">
-            {shownError}
-          </span>
-        )}
-      </div>
-
-      <div
-        {...getRootProps({
-          className: `flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-8 text-center text-sm transition outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 ${
-            isDragReject
-              ? "border-red-500 bg-red-500/5"
-              : isDragActive
-                ? "border-blue-500 bg-blue-500/5"
-                : "border-black/15 hover:border-black/30"
-          }`,
-        })}
+      {/* The file input only exists while there is no preview. */}
+      <label
+        htmlFor={ready ? undefined : inputId}
+        className="text-base text-brand-label"
       >
-        <svg
-          aria-hidden
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          className="mb-1 size-8 text-foreground/50"
+        {label}
+      </label>
+
+      {/* Different keys so React creates new elements when switching: reusing
+          the <img> made Firefox stretch the upload icon over the whole preview
+          until the cover loaded. */}
+      {upload?.status === "done" ? (
+        <div
+          key="preview"
+          // Light background while the cover is still loading.
+          className="relative aspect-video w-full overflow-hidden rounded bg-brand-label/10"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+          <Image
+            src={upload.url}
+            alt="Capa escolhida"
+            fill
+            sizes="(min-width: 768px) 704px, 100vw"
+            className="object-cover"
           />
-        </svg>
-        {isDragReject ? (
-          <p className="font-medium text-red-600">
-            Tipo de arquivo não permitido
-          </p>
-        ) : (
-          <p>
-            <span className="font-medium text-blue-600">
-              Clique para escolher
-            </span>{" "}
-            ou arraste {multiple ? "os arquivos" : "o arquivo"} aqui
-          </p>
-        )}
-        <p className="text-xs text-foreground/60">{hint}</p>
-
-        {/* Hidden native input managed by react-dropzone. No `name`, so the
-            raw files are never sent with the form. The <label> above names
-            it, so drop the library's generic "file upload" aria-label. */}
-        <input
-          {...getInputProps({
-            id: inputId,
-            "aria-label": undefined,
-            onInvalid: (e) => {
-              e.preventDefault();
-              setBlockedSubmit(true);
-            },
+          <IconButton
+            label="Remover capa"
+            variant="circle"
+            icon={<Image src={deleteIcon} alt="" />}
+            onClick={removeFile}
+            className="absolute top-4 right-4"
+          />
+        </div>
+      ) : (
+        <div
+          key="dropzone"
+          {...getRootProps({
+            className: `flex flex-col items-center justify-center gap-4 rounded border border-dashed px-4 py-6 text-center transition ${
+              isDragReject || shownError
+                ? "border-brand-error"
+                : isDragActive
+                  ? "border-brand-label bg-brand-label/5"
+                  : "border-brand-input-border"
+            }`,
           })}
-        />
-      </div>
+        >
+          <Image src={uploadIcon} alt="" />
 
-      {items.length > 0 && (
-        <ul className="flex flex-col gap-1.5">
-          {items.map((item) => (
-            <li
-              key={item.id}
-              className={`flex flex-col gap-1.5 rounded-md border px-3 py-2 text-sm ${
-                item.status === "error"
-                  ? "border-red-500/50"
-                  : "border-black/10"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <span className="truncate">{item.file.name}</span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <span
-                    className={`text-xs ${
-                      item.status === "error"
-                        ? "text-red-600"
-                        : "text-foreground/60"
-                    }`}
-                  >
-                    {item.status === "uploading" &&
-                      `${Math.round(item.progress)}%`}
-                    {item.status === "done" &&
-                      normalizeFileSize(item.file.size)}
-                    {item.status === "error" && item.error}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(item.id)}
-                    aria-label={
-                      item.status === "uploading"
-                        ? `Cancelar envio de ${item.file.name}`
-                        : `Remover ${item.file.name}`
-                    }
-                    className="rounded p-0.5 text-foreground/50 hover:bg-black/5 hover:text-foreground"
-                  >
-                    <svg
-                      aria-hidden
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      className="size-4"
-                    >
-                      <path strokeLinecap="round" d="M6 6l12 12M18 6 6 18" />
-                    </svg>
-                  </button>
-                </span>
-              </div>
+          {upload?.status === "uploading" ? (
+            <div className="flex w-full max-w-sm flex-col gap-2 text-sm text-brand-card-label">
+              <p className="truncate">
+                Enviando {upload.fileName} ({Math.round(upload.progress)}%)
+              </p>
+              <Progress.Root
+                value={upload.progress}
+                className="h-1 overflow-hidden rounded-full bg-black/10"
+              >
+                <Progress.Indicator
+                  className="h-full bg-brand-label transition-transform"
+                  style={{
+                    transform: `translateX(-${100 - upload.progress}%)`,
+                  }}
+                />
+              </Progress.Root>
+              <button
+                type="button"
+                onClick={removeFile}
+                className="cursor-pointer self-center text-brand-label hover:underline"
+              >
+                Cancelar envio
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="text-brand-card-label">
+                {isDragReject ? "Tipo de arquivo não permitido" : hint}
+              </p>
+              <Button
+                label="Selecionar"
+                variant="secondary"
+                size="sm"
+                onClick={open}
+              />
+            </>
+          )}
 
-              {item.status === "uploading" && (
-                <Progress.Root
-                  value={item.progress}
-                  className="h-1 overflow-hidden rounded-full bg-black/10"
-                >
-                  <Progress.Indicator
-                    className="h-full bg-blue-500 transition-transform"
-                    style={{
-                      transform: `translateX(-${100 - item.progress}%)`,
-                    }}
-                  />
-                </Progress.Root>
-              )}
+          {/* Hidden native input managed by react-dropzone. No `name`, so the
+              raw file is never sent with the form. The <label> above names
+              it, so drop the library's generic "file upload" aria-label. */}
+          <input
+            {...getInputProps({
+              id: inputId,
+              "aria-label": undefined,
+              onInvalid: (e) => {
+                e.preventDefault();
+                setBlockedSubmit(true);
+              },
+            })}
+          />
+        </div>
+      )}
 
-              {item.status === "done" && item.url && (
-                <input type="hidden" name={name} value={item.url} />
-              )}
-            </li>
-          ))}
-        </ul>
+      {shownError && (
+        <span className="text-xs text-brand-error" role="alert">
+          {shownError}
+        </span>
+      )}
+
+      {upload?.status === "done" && (
+        <input type="hidden" name={name} value={upload.url} />
       )}
     </div>
   );

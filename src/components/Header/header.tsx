@@ -1,4 +1,5 @@
 import Image from "next/image";
+import searchIcon from "./icons/search.svg";
 
 export function Header() {
   return (
@@ -13,7 +14,7 @@ export function Header() {
         />
       </div>
       <div className="flex flex-1 justify-end">
-        <Image src="/search.svg" alt="Buscar Projeto" width={20} height={20} />
+        <Image src={searchIcon} alt="Buscar Projeto" />
       </div>
     </div>
   );
