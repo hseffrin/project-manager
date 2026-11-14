@@ -86,7 +86,8 @@ guarda as 5 últimas pesquisas no navegador.
    ```
 
 Em desenvolvimento, os arquivos enviados vão para a pasta `test/` do Blob, para
-não se misturarem com os de produção caso o store seja o mesmo.
+não se misturarem com os de produção caso o store seja o mesmo (veja
+[Arquivos no Blob](#arquivos-no-blob)).
 
 ### Scripts
 
@@ -111,6 +112,76 @@ src/
 └── utils/        Funções auxiliares: busca, ordenação, datas e upload
 ```
 
+### Banco de dados
+
+PostgreSQL, acessado pelo Prisma 7. Os projetos ficam em uma única tabela,
+`Project`:
+
+| Coluna       | Tipo                     | Descrição                                                                     |
+| ------------ | ------------------------ | ----------------------------------------------------------------------------- |
+| `id`         | inteiro, autoincremento  | Chave primária. Uso interno: nunca chega ao navegador.                        |
+| `public_id`  | UUID, único              | Gerado pelo banco (`gen_random_uuid()`). É o id usado nas URLs e nas actions. |
+| `name`       | texto                    | Nome do projeto.                                                              |
+| `customer`   | texto                    | Cliente.                                                                      |
+| `date_start` | data e hora              | Início do projeto.                                                            |
+| `date_end`   | data e hora              | Fim do projeto.                                                               |
+| `cover_url`  | texto, opcional          | URL da capa no Blob. `NULL` quando o projeto não tem capa.                    |
+| `favorite`   | booleano, padrão `false` | Marcado com a estrela.                                                        |
+| `createdAt`  | data e hora              | Preenchido na criação.                                                        |
+| `updatedAt`  | data e hora              | Atualizado pelo Prisma a cada alteração.                                      |
+
+- **Schema:** `src/db/schema.prisma` tem o gerador e a conexão, e cada model
+  fica em um arquivo próprio em `src/db/models/` (hoje só `project.prisma`).
+- **Sem migrations:** o schema é aplicado com `pnpm prisma db push`. Depois de
+  mudar um model, rode o comando de novo.
+- **Cliente gerado:** fica em `src/db/generated/prisma`, fora do Git. O
+  `pnpm install` gera o cliente; depois de mudar o schema, rode
+  `pnpm prisma generate`.
+- **Conexão:** `src/db/client.ts` conecta com `@prisma/adapter-pg`, usando o
+  `DATABASE_URL`. Em desenvolvimento, um único cliente é reaproveitado entre os
+  hot reloads, para não abrir um pool de conexões novo a cada alteração. O
+  arquivo só pode ser importado no servidor (`server-only`).
+- **Regras de negócio:** o nome com ao menos duas palavras e a data final depois
+  da inicial são validados pela aplicação (Zod nas Server Actions), não por
+  constraints no banco.
+
+### Arquivos no Blob
+
+As capas ficam no Vercel Blob, organizadas assim:
+
+```
+tmp/
+└── <nome>-<sufixo>.jpg        Upload feito no formulário, ainda não salvo
+projects/
+└── <public_id>/
+    └── <nome>-<sufixo>.jpg    Capa do projeto
+test/
+├── tmp/                       O mesmo, para o ambiente de desenvolvimento
+└── projects/
+```
+
+- **`tmp/`:** o navegador só pode enviar arquivos para cá. O Blob acrescenta um
+  sufixo aleatório ao nome (`dog-a1B2c3.jpg`), para que dois arquivos com o
+  mesmo nome não se sobrescrevam.
+- **`projects/<public_id>/`:** ao salvar o projeto, o servidor copia a capa de
+  `tmp/` para a pasta do projeto, com o mesmo nome, aponta o projeto para a cópia
+  e só então apaga o arquivo temporário. Se algo falhar no meio, o projeto nunca
+  fica sem capa.
+- **Limpeza:**
+  - um upload descartado no formulário (lixeira ou outra imagem) é apagado na
+    hora, desde que nenhum projeto o use;
+  - trocar a capa apaga a anterior;
+  - remover o projeto apaga a capa dele;
+  - se a página for fechada antes de salvar, o upload continua em `tmp/`. Nada
+    limpa essa pasta automaticamente por enquanto.
+- **`test/`:** fora da produção (`pnpm dev`), tudo vai para `test/tmp/` e
+  `test/projects/`. Assim o desenvolvimento pode usar o mesmo store sem misturar
+  arquivos com a produção.
+
+O formulário só aceita URLs desse store e dessas pastas (`tmp/` ou `projects/`
+do ambiente atual), então não dá para salvar uma capa apontando para outro
+site.
+
 ## Decisões técnicas
 
 - **Id público:** cada projeto tem um `public_id` (UUID gerado pelo banco),
@@ -121,9 +192,8 @@ src/
 - **Upload direto para o Blob:** o navegador envia a capa direto para o Vercel
   Blob, com um token de curta duração emitido por `/api/upload`. O arquivo não
   passa pelo servidor do app e não esbarra no limite de tamanho das funções.
-- **Capas por projeto:** o upload vai para `tmp/`. Ao salvar, a capa é movida
-  para `projects/<public_id>/`. Uploads descartados no formulário são apagados,
-  e trocar a capa apaga a anterior.
+- **Capas por projeto:** o upload vai para `tmp/` e, ao salvar, é movido para a
+  pasta do projeto (veja [Arquivos no Blob](#arquivos-no-blob)).
 - **Validação em dobro:** o formulário valida enquanto você preenche, e a Server
   Action valida de novo com Zod antes de gravar.
 
