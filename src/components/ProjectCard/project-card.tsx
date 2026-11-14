@@ -4,23 +4,14 @@ import {
   CalendarStartIcon,
 } from "@/components/icons/calendar-icons";
 import { Highlight } from "@/components/Highlight/highlight";
-import type { Project } from "@/db/generated/prisma/browser";
 import { formatLongDate, toIsoDate } from "@/utils/date-format";
+import type { ProjectCardData } from "@/utils/project-card";
 import placeholderImage from "./icons/placeholder.png";
 import { ProjectCardFavorite } from "./project-card-favorite";
 import { ProjectCardMenu } from "./project-card-menu";
 
 type ProjectCardProps = {
-  project: Pick<
-    Project,
-    | "public_id"
-    | "name"
-    | "customer"
-    | "date_start"
-    | "date_end"
-    | "cover_url"
-    | "favorite"
-  >;
+  project: ProjectCardData;
   // Search text to highlight in the name and the customer (search results).
   highlight?: string;
 };

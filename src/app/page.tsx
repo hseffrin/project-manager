@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ProjectGrid } from "@/components/ProjectGrid/project-grid";
 import { ProjectGridSkeleton } from "@/components/ProjectGrid/project-grid-skeleton";
 import { prisma } from "@/db/client";
+import { PROJECT_CARD_SELECT } from "@/utils/project-card";
 
 // Loads every project on each request, so a new one shows up right away. The
 // sort (?ordem=) and the favorites filter (?favoritos=) run in the browser.
@@ -11,18 +12,8 @@ async function ProjectCards() {
   // database at request time.
   await connection();
 
-  // Only the fields the cards show, so the numeric id never reaches the
-  // browser.
   const projects = await prisma.project.findMany({
-    select: {
-      public_id: true,
-      name: true,
-      customer: true,
-      date_start: true,
-      date_end: true,
-      cover_url: true,
-      favorite: true,
-    },
+    select: PROJECT_CARD_SELECT,
   });
 
   return <ProjectGrid projects={projects} />;

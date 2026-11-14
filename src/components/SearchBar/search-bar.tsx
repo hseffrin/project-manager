@@ -39,6 +39,9 @@ export function SearchBar({ onClose }: SearchBarProps) {
   const onSearchPage = pathname === SEARCH_PATH;
 
   const inputRef = useRef<HTMLInputElement>(null);
+  // Set once this bar has sent the user to /search. Until that navigation
+  // finishes, pathname still shows the previous page.
+  const navigatedRef = useRef(false);
   const [query, setQuery] = useState(
     onSearchPage ? (searchParams.get(SEARCH_PARAM) ?? "") : "",
   );
@@ -50,10 +53,11 @@ export function SearchBar({ onClose }: SearchBarProps) {
   // Both renders still match: the list only shows once the field has focus.
   const [history, setHistory] = useState(readSearchHistory);
 
-  // Searches after a pause in typing. On /search, erasing the text also
-  // updates the URL, so the page goes back to showing every project.
+  // Searches after a pause in typing. On /search (or on the way there),
+  // erasing the text also updates the URL, so the page goes back to showing
+  // every project instead of the results of an older text.
   useEffect(() => {
-    if (!isSearchable(query) && !onSearchPage) return;
+    if (!isSearchable(query) && !onSearchPage && !navigatedRef.current) return;
     const timeout = setTimeout(() => goToResults(query), SEARCH_DELAY_MS);
     return () => clearTimeout(timeout);
     // goToResults only reads the current route, which this effect doesn't
@@ -68,8 +72,14 @@ export function SearchBar({ onClose }: SearchBarProps) {
     const url = isSearchable(term)
       ? `${SEARCH_PATH}?${SEARCH_PARAM}=${encodeURIComponent(term.trim())}`
       : SEARCH_PATH;
-    if (onSearchPage) window.history.replaceState(null, "", url);
-    else router.push(url);
+    if (onSearchPage) {
+      window.history.replaceState(null, "", url);
+    } else {
+      // Every push while the previous one is still loading replaces it, so
+      // only the last one reaches the history.
+      navigatedRef.current = true;
+      router.push(url);
+    }
   }
 
   function saveToHistory(term: string) {

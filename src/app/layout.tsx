@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${encodeSans.variable} h-full antialiased`}>
+    <html lang="pt-BR" className={`${encodeSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         {/* Header reads the pathname, which needs a Suspense boundary on
             routes with dynamic params (Cache Components). */}
