@@ -9,9 +9,10 @@ import {
 // Vercel Blob. The files never pass through this server, which avoids the
 // 1 MB Server Action body limit and the 4.5 MB function payload limit.
 export async function POST(request: Request) {
-  const body = (await request.json()) as HandleUploadBody;
-
   try {
+    // Inside the try: an empty or malformed body is a bad request (400), not
+    // a server error.
+    const body = (await request.json()) as HandleUploadBody;
     const result = await handleUpload({
       body,
       request,
