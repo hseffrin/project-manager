@@ -112,6 +112,39 @@ src/
 └── utils/        Funções auxiliares: busca, ordenação, datas e upload
 ```
 
+### Banco de dados
+
+PostgreSQL, acessado pelo Prisma 7. Os projetos ficam em uma única tabela,
+`Project`:
+
+| Coluna       | Tipo                     | Descrição                                                                     |
+| ------------ | ------------------------ | ----------------------------------------------------------------------------- |
+| `id`         | inteiro, autoincremento  | Chave primária. Uso interno: nunca chega ao navegador.                        |
+| `public_id`  | UUID, único              | Gerado pelo banco (`gen_random_uuid()`). É o id usado nas URLs e nas actions. |
+| `name`       | texto                    | Nome do projeto.                                                              |
+| `customer`   | texto                    | Cliente.                                                                      |
+| `date_start` | data e hora              | Início do projeto.                                                            |
+| `date_end`   | data e hora              | Fim do projeto.                                                               |
+| `cover_url`  | texto, opcional          | URL da capa no Blob. `NULL` quando o projeto não tem capa.                    |
+| `favorite`   | booleano, padrão `false` | Marcado com a estrela.                                                        |
+| `createdAt`  | data e hora              | Preenchido na criação.                                                        |
+| `updatedAt`  | data e hora              | Atualizado pelo Prisma a cada alteração.                                      |
+
+- **Schema:** `src/db/schema.prisma` tem o gerador e a conexão, e cada model
+  fica em um arquivo próprio em `src/db/models/` (hoje só `project.prisma`).
+- **Sem migrations:** o schema é aplicado com `pnpm prisma db push`. Depois de
+  mudar um model, rode o comando de novo.
+- **Cliente gerado:** fica em `src/db/generated/prisma`, fora do Git. O
+  `pnpm install` gera o cliente; depois de mudar o schema, rode
+  `pnpm prisma generate`.
+- **Conexão:** `src/db/client.ts` conecta com `@prisma/adapter-pg`, usando o
+  `DATABASE_URL`. Em desenvolvimento, um único cliente é reaproveitado entre os
+  hot reloads, para não abrir um pool de conexões novo a cada alteração. O
+  arquivo só pode ser importado no servidor (`server-only`).
+- **Regras de negócio:** o nome com ao menos duas palavras e a data final depois
+  da inicial são validados pela aplicação (Zod nas Server Actions), não por
+  constraints no banco.
+
 ### Arquivos no Blob
 
 As capas ficam no Vercel Blob, organizadas assim:
