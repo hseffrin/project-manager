@@ -14,7 +14,7 @@ import { projectCoverPath } from "@/utils/upload/uploads";
 
 const INVALID_COVER = "Capa inválida, envie a imagem novamente";
 
-const requiredText = (message: string) =>
+const requiredText = (message: string): z.ZodString =>
   z.string(message).trim().min(1, message);
 
 const projectSchema = z
