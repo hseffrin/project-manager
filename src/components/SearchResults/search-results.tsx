@@ -2,23 +2,14 @@
 
 import { useSearchParams } from "next/navigation";
 import { ProjectCard } from "@/components/ProjectCard/project-card";
-import type { Project } from "@/db/generated/prisma/browser";
+import type { ProjectCardData } from "@/utils/project-card";
 import { DEFAULT_PROJECT_SORT, sortProjects } from "@/utils/project-sort";
 import { isSearchable, matchesProject, SEARCH_PARAM } from "@/utils/search";
 
 type SearchResultsProps = {
   // All projects: the search filters them in the browser, so each new letter
   // updates the results without a request to the server.
-  projects: Pick<
-    Project,
-    | "public_id"
-    | "name"
-    | "customer"
-    | "date_start"
-    | "date_end"
-    | "cover_url"
-    | "favorite"
-  >[];
+  projects: ProjectCardData[];
 };
 
 export function SearchResults({ projects }: SearchResultsProps) {

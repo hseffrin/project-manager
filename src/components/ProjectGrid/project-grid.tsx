@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { ProjectCard } from "@/components/ProjectCard/project-card";
 import { ProjectToolbar } from "@/components/ProjectToolbar/project-toolbar";
-import type { Project } from "@/db/generated/prisma/browser";
+import type { ProjectCardData } from "@/utils/project-card";
 import { FAVORITES_PARAM, parseFavoritesOnly } from "@/utils/project-favorites";
 import {
   parseProjectSort,
@@ -14,16 +14,7 @@ import { ProjectGridEmpty } from "./project-grid-empty";
 
 type ProjectGridProps = {
   // All projects, in any order: the grid sorts and filters them.
-  projects: Pick<
-    Project,
-    | "public_id"
-    | "name"
-    | "customer"
-    | "date_start"
-    | "date_end"
-    | "cover_url"
-    | "favorite"
-  >[];
+  projects: ProjectCardData[];
 };
 
 // The empty state centers itself in the remaining height, so render the grid

@@ -4,6 +4,7 @@ import { NavigationBar } from "@/components/NavigationBar/navigation-bar";
 import { ProjectGridSkeleton } from "@/components/ProjectGrid/project-grid-skeleton";
 import { SearchResults } from "@/components/SearchResults/search-results";
 import { prisma } from "@/db/client";
+import { PROJECT_CARD_SELECT } from "@/utils/project-card";
 
 // Loads every project on each request; the search text (?q=) filters them in
 // the browser, as the user types in the header.
@@ -12,18 +13,8 @@ async function SearchResultsList() {
   // database at request time.
   await connection();
 
-  // Only the fields the cards show, so the numeric id never reaches the
-  // browser.
   const projects = await prisma.project.findMany({
-    select: {
-      public_id: true,
-      name: true,
-      customer: true,
-      date_start: true,
-      date_end: true,
-      cover_url: true,
-      favorite: true,
-    },
+    select: PROJECT_CARD_SELECT,
   });
 
   return <SearchResults projects={projects} />;
